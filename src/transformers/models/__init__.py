@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from . import (
+    gaia,
     albert,
     align,
     altclip,

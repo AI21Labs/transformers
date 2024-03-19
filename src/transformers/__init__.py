@@ -20,6 +20,8 @@
 
 __version__ = "4.39.0.dev0"
 
+#TODO: make sure model classes is correct
+
 from typing import TYPE_CHECKING
 
 # Check the dependencies satisfy the minimal versions required.
@@ -131,6 +133,7 @@ _import_structure = {
     ],
     "models": [],
     # Models
+    "models.gaia": ["GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GaiaConfig"],
     "models.albert": ["ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP", "AlbertConfig"],
     "models.align": [
         "ALIGN_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -1427,6 +1430,22 @@ else:
     _import_structure["modeling_utils"] = ["PreTrainedModel"]
 
     # PyTorch models structure
+
+    _import_structure["models.gaia"].extend(
+        [
+            "GAIA_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "GaiaForMaskedLM",
+            "GaiaForCausalLM",
+            "GaiaForMultipleChoice",
+            "GaiaForQuestionAnswering",
+            "GaiaForSequenceClassification",
+            "GaiaForTokenClassification",
+            "GaiaLayer",
+            "GaiaModel",
+            "GaiaPreTrainedModel",
+            "load_tf_weights_in_gaia",
+        ]
+    )
 
     _import_structure["models.albert"].extend(
         [
@@ -4991,6 +5010,7 @@ if TYPE_CHECKING:
         load_tf2_weights_in_pytorch_model,
     )
     from .models.albert import ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, AlbertConfig
+    from .models.gaia import GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP, GaiaConfig
     from .models.align import (
         ALIGN_PRETRAINED_CONFIG_ARCHIVE_MAP,
         AlignConfig,
@@ -7729,6 +7749,20 @@ if TYPE_CHECKING:
         )
 
         # PyTorch model imports
+
+        from .models.gaia import (
+            GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
+            GaiaForMaskedLM,
+            GaiaForCausalLM,
+            GaiaForMultipleChoice,
+            GaiaForQuestionAnswering,
+            GaiaForSequenceClassification,
+            GaiaForTokenClassification,
+            GaiaLayer,
+            GaiaModel,
+            GaiaPreTrainedModel,
+            load_tf_weights_in_gaia,
+        )
         from .models.seamless_m4t import (
             SEAMLESS_M4T_PRETRAINED_MODEL_ARCHIVE_LIST,
             SeamlessM4TCodeHifiGan,
