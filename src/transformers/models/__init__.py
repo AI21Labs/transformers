@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from . import (
-    gaia,
     albert,
     align,
     altclip,
@@ -94,6 +93,7 @@ from . import (
     fsmt,
     funnel,
     fuyu,
+    gaia,
     gemma,
     git,
     glpn,

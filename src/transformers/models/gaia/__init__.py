@@ -13,8 +13,7 @@
 # limitations under the License.
 from typing import TYPE_CHECKING
 
-from ...utils import  _LazyModule, OptionalDependencyNotAvailable, is_tokenizers_available
-from ...utils import is_torch_available
+from ...utils import OptionalDependencyNotAvailable, _LazyModule, is_tokenizers_available, is_torch_available
 
 
 _import_structure = {
@@ -43,8 +42,6 @@ else:
     ]
 
 
-
-
 if TYPE_CHECKING:
     from .configuration_gaia import GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP, GaiaConfig
 
@@ -56,8 +53,8 @@ if TYPE_CHECKING:
     else:
         from .modeling_gaia import (
             GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
-            GaiaForMaskedLM,
             GaiaForCausalLM,
+            GaiaForMaskedLM,
             GaiaForMultipleChoice,
             GaiaForQuestionAnswering,
             GaiaForSequenceClassification,
@@ -67,7 +64,6 @@ if TYPE_CHECKING:
             GaiaPreTrainedModel,
             load_tf_weights_in_gaia,
         )
-
 
 
 else:

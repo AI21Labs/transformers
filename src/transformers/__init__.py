@@ -20,7 +20,7 @@
 
 __version__ = "4.39.0.dev0"
 
-#TODO: make sure model classes is correct
+# TODO: make sure model classes is correct
 
 from typing import TYPE_CHECKING
 
@@ -133,7 +133,6 @@ _import_structure = {
     ],
     "models": [],
     # Models
-    "models.gaia": ["GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GaiaConfig"],
     "models.albert": ["ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP", "AlbertConfig"],
     "models.align": [
         "ALIGN_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -461,6 +460,7 @@ _import_structure = {
         "FunnelTokenizer",
     ],
     "models.fuyu": ["FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP", "FuyuConfig"],
+    "models.gaia": ["GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GaiaConfig"],
     "models.gemma": ["GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GemmaConfig"],
     "models.git": [
         "GIT_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -1431,22 +1431,6 @@ else:
 
     # PyTorch models structure
 
-    _import_structure["models.gaia"].extend(
-        [
-            "GAIA_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "GaiaForMaskedLM",
-            "GaiaForCausalLM",
-            "GaiaForMultipleChoice",
-            "GaiaForQuestionAnswering",
-            "GaiaForSequenceClassification",
-            "GaiaForTokenClassification",
-            "GaiaLayer",
-            "GaiaModel",
-            "GaiaPreTrainedModel",
-            "load_tf_weights_in_gaia",
-        ]
-    )
-
     _import_structure["models.albert"].extend(
         [
             "ALBERT_PRETRAINED_MODEL_ARCHIVE_LIST",
@@ -1471,6 +1455,7 @@ else:
             "AlignVisionModel",
         ]
     )
+
     _import_structure["models.altclip"].extend(
         [
             "ALTCLIP_PRETRAINED_MODEL_ARCHIVE_LIST",
@@ -2286,6 +2271,21 @@ else:
         ]
     )
     _import_structure["models.fuyu"].extend(["FuyuForCausalLM", "FuyuPreTrainedModel"])
+    _import_structure["models.gaia"].extend(
+        [
+            "GAIA_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "GaiaForCausalLM",
+            "GaiaForMaskedLM",
+            "GaiaForMultipleChoice",
+            "GaiaForQuestionAnswering",
+            "GaiaForSequenceClassification",
+            "GaiaForTokenClassification",
+            "GaiaLayer",
+            "GaiaModel",
+            "GaiaPreTrainedModel",
+            "load_tf_weights_in_gaia",
+        ]
+    )
     _import_structure["models.gemma"].extend(
         [
             "GemmaForCausalLM",
@@ -5010,7 +5010,6 @@ if TYPE_CHECKING:
         load_tf2_weights_in_pytorch_model,
     )
     from .models.albert import ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP, AlbertConfig
-    from .models.gaia import GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP, GaiaConfig
     from .models.align import (
         ALIGN_PRETRAINED_CONFIG_ARCHIVE_MAP,
         AlignConfig,
@@ -5329,6 +5328,7 @@ if TYPE_CHECKING:
         FunnelTokenizer,
     )
     from .models.fuyu import FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP, FuyuConfig
+    from .models.gaia import GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP, GaiaConfig
     from .models.gemma import GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP, GemmaConfig
     from .models.git import (
         GIT_PRETRAINED_CONFIG_ARCHIVE_MAP,
@@ -6990,6 +6990,21 @@ if TYPE_CHECKING:
             FuyuForCausalLM,
             FuyuPreTrainedModel,
         )
+
+        # PyTorch model imports
+        from .models.gaia import (
+            GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
+            GaiaForCausalLM,
+            GaiaForMaskedLM,
+            GaiaForMultipleChoice,
+            GaiaForQuestionAnswering,
+            GaiaForSequenceClassification,
+            GaiaForTokenClassification,
+            GaiaLayer,
+            GaiaModel,
+            GaiaPreTrainedModel,
+            load_tf_weights_in_gaia,
+        )
         from .models.gemma import (
             GemmaForCausalLM,
             GemmaForSequenceClassification,
@@ -7746,22 +7761,6 @@ if TYPE_CHECKING:
             SAM_PRETRAINED_MODEL_ARCHIVE_LIST,
             SamModel,
             SamPreTrainedModel,
-        )
-
-        # PyTorch model imports
-
-        from .models.gaia import (
-            GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
-            GaiaForMaskedLM,
-            GaiaForCausalLM,
-            GaiaForMultipleChoice,
-            GaiaForQuestionAnswering,
-            GaiaForSequenceClassification,
-            GaiaForTokenClassification,
-            GaiaLayer,
-            GaiaModel,
-            GaiaPreTrainedModel,
-            load_tf_weights_in_gaia,
         )
         from .models.seamless_m4t import (
             SEAMLESS_M4T_PRETRAINED_MODEL_ARCHIVE_LIST,

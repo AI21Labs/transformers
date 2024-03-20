@@ -30,7 +30,6 @@ logger = logging.get_logger(__name__)
 CONFIG_MAPPING_NAMES = OrderedDict(
     [
         # Add configs here
-        ("gaia", "GaiaConfig"),
         ("albert", "AlbertConfig"),
         ("align", "AlignConfig"),
         ("altclip", "AltCLIPConfig"),
@@ -105,6 +104,7 @@ CONFIG_MAPPING_NAMES = OrderedDict(
         ("fsmt", "FSMTConfig"),
         ("funnel", "FunnelConfig"),
         ("fuyu", "FuyuConfig"),
+        ("gaia", "GaiaConfig"),
         ("gemma", "GemmaConfig"),
         ("git", "GitConfig"),
         ("glpn", "GLPNConfig"),
@@ -278,7 +278,6 @@ CONFIG_MAPPING_NAMES = OrderedDict(
 CONFIG_ARCHIVE_MAP_MAPPING_NAMES = OrderedDict(
     [
         # Add archive maps here)
-        ("gaia", "GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("albert", "ALBERT_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("align", "ALIGN_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("altclip", "ALTCLIP_PRETRAINED_CONFIG_ARCHIVE_MAP"),
@@ -347,6 +346,7 @@ CONFIG_ARCHIVE_MAP_MAPPING_NAMES = OrderedDict(
         ("fsmt", "FSMT_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("funnel", "FUNNEL_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("fuyu", "FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP"),
+        ("gaia", "GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("gemma", "GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("git", "GIT_PRETRAINED_CONFIG_ARCHIVE_MAP"),
         ("glpn", "GLPN_PRETRAINED_CONFIG_ARCHIVE_MAP"),
@@ -501,7 +501,6 @@ CONFIG_ARCHIVE_MAP_MAPPING_NAMES = OrderedDict(
 MODEL_NAMES_MAPPING = OrderedDict(
     [
         # Add full (and cased) model names here
-        ("gaia", "Gaia"),
         ("albert", "ALBERT"),
         ("align", "ALIGN"),
         ("altclip", "AltCLIP"),
@@ -588,6 +587,7 @@ MODEL_NAMES_MAPPING = OrderedDict(
         ("fsmt", "FairSeq Machine-Translation"),
         ("funnel", "Funnel Transformer"),
         ("fuyu", "Fuyu"),
+        ("gaia", "Gaia"),
         ("gemma", "Gemma"),
         ("git", "GIT"),
         ("glpn", "GLPN"),

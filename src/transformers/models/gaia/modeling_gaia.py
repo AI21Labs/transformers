@@ -22,7 +22,7 @@ import inspect
 import math
 import warnings
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union, Dict, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -51,6 +51,7 @@ from transformers.utils import (
     replace_return_docstrings,
 )
 from transformers.utils.import_utils import is_torch_fx_available
+
 from .configuration_gaia import GaiaConfig
 
 
@@ -96,7 +97,7 @@ _CONFIG_FOR_DOC = "GaiaConfig"
 
 # Copied from transformers.models.mixtral.modeling_mixtral.load_balancing_loss_func
 def load_balancing_loss_func(
-        gate_logits: torch.Tensor, num_experts: torch.Tensor = None, top_k=2, attention_mask: Optional[torch.Tensor] = None
+    gate_logits: torch.Tensor, num_experts: torch.Tensor = None, top_k=2, attention_mask: Optional[torch.Tensor] = None
 ) -> float:
     r"""
     Computes auxiliary load balancing loss as in Switch Transformer - implemented in Pytorch.
@@ -144,9 +145,9 @@ def load_balancing_loss_func(
         # Compute the mask that masks all padding tokens as 0 with the same shape of expert_mask
         expert_attention_mask = (
             attention_mask[None, :, :, None, None]
-                .expand((num_hidden_layers, batch_size, sequence_length, top_k, num_experts))
-                .reshape(-1, top_k, num_experts)
-                .to(compute_device)
+            .expand((num_hidden_layers, batch_size, sequence_length, top_k, num_experts))
+            .reshape(-1, top_k, num_experts)
+            .to(compute_device)
         )
 
         # Compute the percentage of tokens routed to each experts
@@ -157,9 +158,9 @@ def load_balancing_loss_func(
         # Compute the mask that masks all padding tokens as 0 with the same shape of tokens_per_expert
         router_per_expert_attention_mask = (
             attention_mask[None, :, :, None]
-                .expand((num_hidden_layers, batch_size, sequence_length, num_experts))
-                .reshape(-1, num_experts)
-                .to(compute_device)
+            .expand((num_hidden_layers, batch_size, sequence_length, num_experts))
+            .reshape(-1, num_experts)
+            .to(compute_device)
         )
 
         # Compute the average probability of routing to these experts
@@ -255,14 +256,14 @@ class GaiaAttention(nn.Module):
         return tensor.view(bsz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_value: Optional[Cache] = None,
-            output_attentions: bool = False,
-            use_cache: bool = False,
-            **kwargs,
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Cache] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         if "padding_mask" in kwargs:
             warnings.warn(
@@ -351,14 +352,14 @@ class GaiaFlashAttention2(GaiaAttention):
         self._flash_attn_uses_top_left_mask = not is_flash_attn_greater_or_equal_2_10()
 
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_value: Optional[Cache] = None,
-            output_attentions: bool = False,
-            use_cache: bool = False,
-            **kwargs,
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Cache] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
+        **kwargs,
     ):
         if "padding_mask" in kwargs:
             warnings.warn(
@@ -388,9 +389,9 @@ class GaiaFlashAttention2(GaiaAttention):
             kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
 
         use_sliding_windows = (
-                _flash_supports_window_size
-                and getattr(self.config, "sliding_window", None) is not None
-                and kv_seq_len > self.config.sliding_window
+            _flash_supports_window_size
+            and getattr(self.config, "sliding_window", None) is not None
+            and kv_seq_len > self.config.sliding_window
         )
 
         if not _flash_supports_window_size:
@@ -403,9 +404,9 @@ class GaiaFlashAttention2(GaiaAttention):
             # Activate slicing cache only if the config has a value `sliding_windows` attribute
             cache_has_contents = past_key_value.get_seq_length(self.layer_idx) > 0
             if (
-                    getattr(self.config, "sliding_window", None) is not None
-                    and kv_seq_len > self.config.sliding_window
-                    and cache_has_contents
+                getattr(self.config, "sliding_window", None) is not None
+                and kv_seq_len > self.config.sliding_window
+                and cache_has_contents
             ):
                 slicing_tokens = 1 - self.config.sliding_window
 
@@ -479,15 +480,15 @@ class GaiaFlashAttention2(GaiaAttention):
         return attn_output, attn_weights, past_key_value
 
     def _flash_attention_forward(
-            self,
-            query_states,
-            key_states,
-            value_states,
-            attention_mask,
-            query_length,
-            dropout=0.0,
-            softmax_scale=None,
-            use_sliding_windows=False,
+        self,
+        query_states,
+        key_states,
+        value_states,
+        attention_mask,
+        query_length,
+        dropout=0.0,
+        softmax_scale=None,
+        use_sliding_windows=False,
     ):
         """
         Calls the forward method of Flash Attention - if the input hidden states contain at least one padding token
@@ -631,13 +632,13 @@ class GaiaSdpaAttention(GaiaAttention):
 
     # Adapted from GaiaAttention.forward
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_value: Optional[Cache] = None,
-            output_attentions: bool = False,
-            use_cache: bool = False,
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Cache] = None,
+        output_attentions: bool = False,
+        use_cache: bool = False,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         if output_attentions:
             # TODO: Improve this warning with e.g. `model.config.attn_implementation = "manual"` once this is implemented.
@@ -722,16 +723,17 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
     For the mamba layer, the `key_cache` represents the convolution state and has a shape of `[batch_size, d_inner, d_conv]`,
     and the `value_cache` represents the ssm state and has a shape of `[batch_size, d_inner, d_state]`,
     """
+
     def __init__(self) -> None:
         super().__init__()
-        self.attention_layer_idx = None     # used to know which layer has data on seqlen in the cache shape
+        self.attention_layer_idx = None  # used to know which layer has data on seqlen in the cache shape
 
     def update(
-            self,
-            key_states: torch.Tensor,
-            value_states: torch.Tensor,
-            layer_idx: int,
-            cache_kwargs: Optional[Dict[str, Any]] = None,
+        self,
+        key_states: torch.Tensor,
+        value_states: torch.Tensor,
+        layer_idx: int,
+        cache_kwargs: Optional[Dict[str, Any]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Updates the cache with the new `key_states` and `value_states` for the layer `layer_idx`.
@@ -874,7 +876,9 @@ class GaiaMambaMixer(nn.Module):
         # 1. Gated MLP's linear projection
         projected_states = self.in_proj(hidden_states).transpose(1, 2)
 
-        if self.training and cache_params is None and not self.apply_inner_layernorms:  # Doesn't support outputting the states -> used for training
+        if (
+            self.training and cache_params is None and not self.apply_inner_layernorms
+        ):  # Doesn't support outputting the states -> used for training
             contextualized_states = mamba_inner_fn(
                 projected_states,
                 self.conv1d.weight,
@@ -1045,15 +1049,18 @@ class GaiaMambaMixer(nn.Module):
     def mixer_forward(self, hidden_states, cache_params: MambaCacheParams = None):
         if self.use_fast_kernels:
             if not is_fast_path_available or "cuda" not in self.x_proj.weight.device.type:
-                raise ValueError("Fast Mamba kernels are not available. Make sure to they are installed and that the mamba module is on a CUDA device")
+                raise ValueError(
+                    "Fast Mamba kernels are not available. Make sure to they are installed and that the mamba module is on a CUDA device"
+                )
             return self.cuda_kernels_forward(hidden_states, cache_params)
         return self.slow_forward(hidden_states, cache_params)
 
-    def forward(self,
-                hidden_states: torch.Tensor,
-                past_key_value: Optional[HybridMambaAttentionDynamicCache] = None,
-                **kwargs,
-                ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor]]]:
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        past_key_value: Optional[HybridMambaAttentionDynamicCache] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor]]]:
         if past_key_value is not None:
             cache_params = MambaCacheParams(
                 seqlen_offset=0 if hidden_states.shape[1] > 1 else past_key_value.seen_tokens,
@@ -1065,15 +1072,29 @@ class GaiaMambaMixer(nn.Module):
             else:
                 # we don't have cache for this layer, initialize it with zeros
                 batch_size = hidden_states.shape[0]
-                cache_params.conv_states[self.layer_idx] = torch.zeros(batch_size, self.intermediate_size, self.conv_kernel_size, device=hidden_states.device, dtype=hidden_states.dtype)
-                cache_params.ssm_states[self.layer_idx] = torch.zeros(batch_size, self.intermediate_size, self.ssm_state_size, device=hidden_states.device, dtype=hidden_states.dtype)
+                cache_params.conv_states[self.layer_idx] = torch.zeros(
+                    batch_size,
+                    self.intermediate_size,
+                    self.conv_kernel_size,
+                    device=hidden_states.device,
+                    dtype=hidden_states.dtype,
+                )
+                cache_params.ssm_states[self.layer_idx] = torch.zeros(
+                    batch_size,
+                    self.intermediate_size,
+                    self.ssm_state_size,
+                    device=hidden_states.device,
+                    dtype=hidden_states.dtype,
+                )
         else:
             cache_params = None
 
         res = self.mixer_forward(hidden_states, cache_params)
 
         if past_key_value is not None:
-            past_key_value.update(cache_params.conv_states[self.layer_idx], cache_params.ssm_states[self.layer_idx], self.layer_idx)
+            past_key_value.update(
+                cache_params.conv_states[self.layer_idx], cache_params.ssm_states[self.layer_idx], self.layer_idx
+            )
 
         return res, past_key_value
 
@@ -1131,8 +1152,12 @@ class GaiaSparseMoeBlock(nn.Module):
         if self.num_experts == 1:
             # in this case we have a single MLP block and don't need to do any routing
             final_hidden_states = self.experts[0](hidden_states)
-            router_logits = torch.ones((batch_size*sequence_length, 1), device=hidden_states.device,
-                                       dtype=hidden_states.dtype, requires_grad=hidden_states.requires_grad)
+            router_logits = torch.ones(
+                (batch_size * sequence_length, 1),
+                device=hidden_states.device,
+                dtype=hidden_states.dtype,
+                requires_grad=hidden_states.requires_grad,
+            )
             return final_hidden_states, router_logits
 
         # in this case we have multiple experts and need to do routing
@@ -1195,23 +1220,21 @@ class GaiaDecoderLayer(nn.Module):
         actual_num_experts_per_tok = config.num_experts_per_tok if self.is_expert_layer else 1
 
         self.moe = GaiaSparseMoeBlock(
-            config,
-            num_experts=actual_num_experts,
-            num_experts_per_tok=actual_num_experts_per_tok
+            config, num_experts=actual_num_experts, num_experts_per_tok=actual_num_experts_per_tok
         )
         self.input_layernorm = GaiaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.pre_moe_layernorm = GaiaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
     def forward(
-            self,
-            hidden_states: torch.Tensor,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_value: Optional[Tuple[torch.Tensor]] = None,
-            output_attentions: Optional[bool] = False,
-            output_router_logits: Optional[bool] = False,
-            use_cache: Optional[bool] = False,
-            **kwargs,
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        output_attentions: Optional[bool] = False,
+        output_router_logits: Optional[bool] = False,
+        use_cache: Optional[bool] = False,
+        **kwargs,
     ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
         if "padding_mask" in kwargs:
             warnings.warn(
@@ -1252,9 +1275,10 @@ class GaiaDecoderLayer(nn.Module):
 
         else:
             # mamba layer
-            hidden_states, present_key_value = self.mamba(hidden_states=hidden_states,
-                                                          past_key_value=past_key_value,
-                                                          )
+            hidden_states, present_key_value = self.mamba(
+                hidden_states=hidden_states,
+                past_key_value=past_key_value,
+            )
             self_attn_weights = None
 
         #   residual connection after mamba/attention
@@ -1359,13 +1383,13 @@ GAIA_INPUTS_DOCSTRING = r"""
 
             [What are position IDs?](../glossary#position-ids)
         past_key_values (`tuple(tuple(torch.FloatTensor))`, *optional*, returned when `use_cache=True` is passed or when `config.use_cache=True`):
-            Tuple of `tuple(torch.FloatTensor)` of length `config.num_hidden_layers`, with each tuple having 2 tensors 
+            Tuple of `tuple(torch.FloatTensor)` of length `config.num_hidden_layers`, with each tuple having 2 tensors
             corresponding to the cache of the layer.
             For attention layers, both tensors have shape of `(batch_size, num_kv_heads, sequence_length, embed_size_per_head)`
             For mamba layers, the first tensor represents the convolution state and has shape of `(batch_size, d_inner, d_conv)`,
             and the second tensor represents the ssm state and has shape of `(batch_size, d_inner, d_state)`.
 
-            Contains pre-computed hidden-states (key and values in the self-attention blocks and convolution and 
+            Contains pre-computed hidden-states (key and values in the self-attention blocks and convolution and
             ssm states in the mamba blocks) that can be used (see `past_key_values` input) to speed up sequential decoding.
 
             If `past_key_values` are used, the user can optionally input only the last `input_ids` (those that
@@ -1416,19 +1440,8 @@ class GaiaModel(GaiaPreTrainedModel):
 
         decoder_layers = []
         for i in range(config.num_hidden_layers):
-            is_attn = (
-                True
-                if (i - self.config.attn_layer_offset) % self.config.attn_layer_period
-                   == 0
-                else False
-            )
-            is_expert = (
-                True
-                if (i - self.config.expert_layer_offset)
-                   % self.config.expert_layer_period
-                   == 0
-                else False
-            )
+            is_attn = True if (i - self.config.attn_layer_offset) % self.config.attn_layer_period == 0 else False
+            is_expert = True if (i - self.config.expert_layer_offset) % self.config.expert_layer_period == 0 else False
 
             decoder_layers.append(
                 GaiaDecoderLayer(
@@ -1440,9 +1453,7 @@ class GaiaModel(GaiaPreTrainedModel):
             )
 
         if not any(layer.is_attn_layer for layer in decoder_layers):
-            raise ValueError(
-                "At least one layer in the decoder must be an attention layer"
-            )
+            raise ValueError("At least one layer in the decoder must be an attention layer")
         self._attn_layer_index = [layer.is_attn_layer for layer in decoder_layers].index(True)
 
         self.layers = nn.ModuleList(decoder_layers)
@@ -1463,17 +1474,17 @@ class GaiaModel(GaiaPreTrainedModel):
     # Ignore copy
     @add_start_docstrings_to_model_forward(GAIA_INPUTS_DOCSTRING)
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            output_router_logits: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        output_router_logits: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, MoeModelOutputWithPast]:
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_router_logits = (
@@ -1506,8 +1517,12 @@ class GaiaModel(GaiaPreTrainedModel):
                 use_cache = False
 
         if use_cache:
-            if isinstance(past_key_values, Cache) and not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
-                raise ValueError("if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache")
+            if isinstance(past_key_values, Cache) and not isinstance(
+                past_key_values, HybridMambaAttentionDynamicCache
+            ):
+                raise ValueError(
+                    "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
+                )
             use_legacy_cache = not isinstance(past_key_values, HybridMambaAttentionDynamicCache)
             if use_legacy_cache:
                 past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values)
@@ -1663,19 +1678,19 @@ class GaiaForCausalLM(GaiaPreTrainedModel):
     @replace_return_docstrings(output_type=MoeCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
     # Ignore copy
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            output_router_logits: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
-            calc_logits_for_entire_prompt: Optional[bool] = True,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        output_router_logits: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
+        calc_logits_for_entire_prompt: Optional[bool] = True,
     ) -> Union[Tuple, MoeCausalLMOutputWithPast]:
         r"""
         Args:
@@ -1764,20 +1779,22 @@ class GaiaForCausalLM(GaiaPreTrainedModel):
         )
 
     def prepare_inputs_for_generation(
-            self,
-            input_ids,
-            past_key_values=None,
-            attention_mask=None,
-            inputs_embeds=None,
-            output_router_logits=False,
-            **kwargs,
+        self,
+        input_ids,
+        past_key_values=None,
+        attention_mask=None,
+        inputs_embeds=None,
+        output_router_logits=False,
+        **kwargs,
     ):
         # Omit tokens covered by past_key_values
         if past_key_values is not None:
             if not isinstance(past_key_values, Cache):
                 past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values)
             elif not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
-                raise ValueError("if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache")
+                raise ValueError(
+                    "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
+                )
             cache_length = past_key_values.get_seq_length()
             past_length = past_key_values.seen_tokens
             max_cache_length = past_key_values.get_max_length()
@@ -1796,9 +1813,9 @@ class GaiaForCausalLM(GaiaPreTrainedModel):
 
             # If we are about to go beyond the maximum cache length, we need to crop the input attention mask.
             if (
-                    max_cache_length is not None
-                    and attention_mask is not None
-                    and cache_length + input_ids.shape[1] > max_cache_length
+                max_cache_length is not None
+                and attention_mask is not None
+                and cache_length + input_ids.shape[1] > max_cache_length
             ):
                 attention_mask = attention_mask[:, -max_cache_length:]
 
@@ -1872,17 +1889,17 @@ class GaiaForSequenceClassification(GaiaPreTrainedModel):
 
     @add_start_docstrings_to_model_forward(GAIA_INPUTS_DOCSTRING)
     def forward(
-            self,
-            input_ids: torch.LongTensor = None,
-            attention_mask: Optional[torch.Tensor] = None,
-            position_ids: Optional[torch.LongTensor] = None,
-            past_key_values: Optional[List[torch.FloatTensor]] = None,
-            inputs_embeds: Optional[torch.FloatTensor] = None,
-            labels: Optional[torch.LongTensor] = None,
-            use_cache: Optional[bool] = None,
-            output_attentions: Optional[bool] = None,
-            output_hidden_states: Optional[bool] = None,
-            return_dict: Optional[bool] = None,
+        self,
+        input_ids: torch.LongTensor = None,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
+        use_cache: Optional[bool] = None,
+        output_attentions: Optional[bool] = None,
+        output_hidden_states: Optional[bool] = None,
+        return_dict: Optional[bool] = None,
     ) -> Union[Tuple, SequenceClassifierOutputWithPast]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

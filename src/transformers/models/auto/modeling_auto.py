@@ -26,13 +26,13 @@ from .auto_factory import (
 )
 from .configuration_auto import CONFIG_MAPPING_NAMES
 
-#TODO: make sure model classes is correct
+
+# TODO: make sure model classes is correct
 logger = logging.get_logger(__name__)
 
 MODEL_MAPPING_NAMES = OrderedDict(
     [
         # Base model mapping
-        ("gaia", "GaiaModel"),
         ("albert", "AlbertModel"),
         ("align", "AlignModel"),
         ("altclip", "AltCLIPModel"),
@@ -104,6 +104,7 @@ MODEL_MAPPING_NAMES = OrderedDict(
         ("focalnet", "FocalNetModel"),
         ("fsmt", "FSMTModel"),
         ("funnel", ("FunnelModel", "FunnelBaseModel")),
+        ("gaia", "GaiaModel"),
         ("gemma", "GemmaModel"),
         ("git", "GitModel"),
         ("glpn", "GLPNModel"),
@@ -332,7 +333,6 @@ MODEL_FOR_PRETRAINING_MAPPING_NAMES = OrderedDict(
 MODEL_WITH_LM_HEAD_MAPPING_NAMES = OrderedDict(
     [
         # Model with LM heads mapping
-("gaia", "GaiaForMaskedLM"),
         ("albert", "AlbertForMaskedLM"),
         ("bart", "BartForConditionalGeneration"),
         ("bert", "BertForMaskedLM"),
@@ -357,6 +357,7 @@ MODEL_WITH_LM_HEAD_MAPPING_NAMES = OrderedDict(
         ("fnet", "FNetForMaskedLM"),
         ("fsmt", "FSMTForConditionalGeneration"),
         ("funnel", "FunnelForMaskedLM"),
+        ("gaia", "GaiaForMaskedLM"),
         ("git", "GitForCausalLM"),
         ("gpt-sw3", "GPT2LMHeadModel"),
         ("gpt2", "GPT2LMHeadModel"),
@@ -417,7 +418,6 @@ MODEL_WITH_LM_HEAD_MAPPING_NAMES = OrderedDict(
 MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
     [
         # Model for Causal LM mapping
-        ("gaia", "GaiaForCausalLM"),
         ("bart", "BartForCausalLM"),
         ("bert", "BertLMHeadModel"),
         ("bert-generation", "BertGenerationDecoder"),
@@ -438,6 +438,7 @@ MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
         ("ernie", "ErnieForCausalLM"),
         ("falcon", "FalconForCausalLM"),
         ("fuyu", "FuyuForCausalLM"),
+        ("gaia", "GaiaForCausalLM"),
         ("gemma", "GemmaForCausalLM"),
         ("git", "GitForCausalLM"),
         ("gpt-sw3", "GPT2LMHeadModel"),
@@ -687,7 +688,6 @@ MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES = OrderedDict(
 MODEL_FOR_MASKED_LM_MAPPING_NAMES = OrderedDict(
     [
         # Model for Masked LM mapping
-("gaia", "GaiaForMaskedLM"),
         ("albert", "AlbertForMaskedLM"),
         ("bart", "BartForConditionalGeneration"),
         ("bert", "BertForMaskedLM"),
@@ -704,6 +704,7 @@ MODEL_FOR_MASKED_LM_MAPPING_NAMES = OrderedDict(
         ("flaubert", "FlaubertWithLMHeadModel"),
         ("fnet", "FNetForMaskedLM"),
         ("funnel", "FunnelForMaskedLM"),
+        ("gaia", "GaiaForMaskedLM"),
         ("ibert", "IBertForMaskedLM"),
         ("layoutlm", "LayoutLMForMaskedLM"),
         ("longformer", "LongformerForMaskedLM"),
@@ -810,7 +811,6 @@ MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES = OrderedDict(
 MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
     [
         # Model for Sequence Classification mapping
-        ("gaia", "GaiaForSequenceClassification"),
         ("albert", "AlbertForSequenceClassification"),
         ("bart", "BartForSequenceClassification"),
         ("bert", "BertForSequenceClassification"),
@@ -835,6 +835,7 @@ MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
         ("flaubert", "FlaubertForSequenceClassification"),
         ("fnet", "FNetForSequenceClassification"),
         ("funnel", "FunnelForSequenceClassification"),
+        ("gaia", "GaiaForSequenceClassification"),
         ("gemma", "GemmaForSequenceClassification"),
         ("gpt-sw3", "GPT2ForSequenceClassification"),
         ("gpt2", "GPT2ForSequenceClassification"),
@@ -899,7 +900,6 @@ MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
 MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
     [
         # Model for Question Answering mapping
-        ("gaia", "GaiaForQuestionAnswering"),
         ("albert", "AlbertForQuestionAnswering"),
         ("bart", "BartForQuestionAnswering"),
         ("bert", "BertForQuestionAnswering"),
@@ -920,6 +920,7 @@ MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
         ("flaubert", "FlaubertForQuestionAnsweringSimple"),
         ("fnet", "FNetForQuestionAnswering"),
         ("funnel", "FunnelForQuestionAnswering"),
+        ("gaia", "GaiaForQuestionAnswering"),
         ("gpt2", "GPT2ForQuestionAnswering"),
         ("gpt_neo", "GPTNeoForQuestionAnswering"),
         ("gpt_neox", "GPTNeoXForQuestionAnswering"),
@@ -992,7 +993,6 @@ MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
 MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
     [
         # Model for Token Classification mapping
-("gaia", "GaiaForTokenClassification"),
         ("albert", "AlbertForTokenClassification"),
         ("bert", "BertForTokenClassification"),
         ("big_bird", "BigBirdForTokenClassification"),
@@ -1014,6 +1014,7 @@ MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
         ("flaubert", "FlaubertForTokenClassification"),
         ("fnet", "FNetForTokenClassification"),
         ("funnel", "FunnelForTokenClassification"),
+        ("gaia", "GaiaForTokenClassification"),
         ("gpt-sw3", "GPT2ForTokenClassification"),
         ("gpt2", "GPT2ForTokenClassification"),
         ("gpt_bigcode", "GPTBigCodeForTokenClassification"),
@@ -1058,7 +1059,6 @@ MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
 MODEL_FOR_MULTIPLE_CHOICE_MAPPING_NAMES = OrderedDict(
     [
         # Model for Multiple Choice mapping
-("gaia", "GaiaForMultipleChoice"),
         ("albert", "AlbertForMultipleChoice"),
         ("bert", "BertForMultipleChoice"),
         ("big_bird", "BigBirdForMultipleChoice"),
@@ -1074,6 +1074,7 @@ MODEL_FOR_MULTIPLE_CHOICE_MAPPING_NAMES = OrderedDict(
         ("flaubert", "FlaubertForMultipleChoice"),
         ("fnet", "FNetForMultipleChoice"),
         ("funnel", "FunnelForMultipleChoice"),
+        ("gaia", "GaiaForMultipleChoice"),
         ("ibert", "IBertForMultipleChoice"),
         ("longformer", "LongformerForMultipleChoice"),
         ("luke", "LukeForMultipleChoice"),
