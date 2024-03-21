@@ -13,27 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Testing suite for the PyTorch Jamba model. """
-
-
 import unittest
 
 from transformers import JambaConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
 
 from ...test_configuration_common import ConfigTester
-from ...test_modeling_common import ModelTesterMixin, floats_tensor, ids_tensor, random_attention_mask
-
+from ...test_modeling_common import ModelTesterMixin, ids_tensor, random_attention_mask, \
+    _config_zero_init
 
 if is_torch_available():
     import torch
 
     from transformers import (
         JambaForCausalLM,
-        JambaForMaskedLM,
-        JambaForMultipleChoice,
-        JambaForQuestionAnswering,
         JambaForSequenceClassification,
-        JambaForTokenClassification,
         JambaModel,
     )
     from transformers.models.jamba.modeling_jamba import (
@@ -49,12 +43,12 @@ class JambaModelTester:
         seq_length=7,
         is_training=True,
         use_input_mask=True,
-        use_token_type_ids=True,
         use_labels=True,
         vocab_size=99,
         hidden_size=32,
         num_hidden_layers=5,
         num_attention_heads=4,
+        num_key_value_heads=2,
         intermediate_size=37,
         hidden_act="gelu",
         hidden_dropout_prob=0.1,
@@ -72,12 +66,12 @@ class JambaModelTester:
         self.seq_length = seq_length
         self.is_training = is_training
         self.use_input_mask = use_input_mask
-        self.use_token_type_ids = use_token_type_ids
         self.use_labels = use_labels
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
         self.num_hidden_layers = num_hidden_layers
         self.num_attention_heads = num_attention_heads
+        self.num_key_value_heads = num_key_value_heads
         self.intermediate_size = intermediate_size
         self.hidden_act = hidden_act
         self.hidden_dropout_prob = hidden_dropout_prob
@@ -97,10 +91,6 @@ class JambaModelTester:
         if self.use_input_mask:
             input_mask = random_attention_mask([self.batch_size, self.seq_length])
 
-        token_type_ids = None
-        if self.use_token_type_ids:
-            token_type_ids = ids_tensor([self.batch_size, self.seq_length], self.type_vocab_size)
-
         sequence_labels = None
         token_labels = None
         choice_labels = None
@@ -111,7 +101,7 @@ class JambaModelTester:
 
         config = self.get_config()
 
-        return config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
+        return config, input_ids, input_mask, sequence_labels, token_labels, choice_labels
 
     def get_config(self):
         return JambaConfig(
@@ -119,21 +109,22 @@ class JambaModelTester:
             hidden_size=self.hidden_size,
             num_hidden_layers=self.num_hidden_layers,
             num_attention_heads=self.num_attention_heads,
+            num_key_value_heads=self.num_key_value_heads,
             intermediate_size=self.intermediate_size,
             hidden_act=self.hidden_act,
             hidden_dropout_prob=self.hidden_dropout_prob,
             attention_probs_dropout_prob=self.attention_probs_dropout_prob,
             max_position_embeddings=self.max_position_embeddings,
             type_vocab_size=self.type_vocab_size,
-            is_decoder=False,
+            is_decoder=True,
             initializer_range=self.initializer_range,
+            use_mamba_kernels=False,
         )
 
     def prepare_config_and_inputs_for_decoder(self):
         (
             config,
             input_ids,
-            token_type_ids,
             input_mask,
             sequence_labels,
             token_labels,
@@ -141,29 +132,22 @@ class JambaModelTester:
         ) = self.prepare_config_and_inputs()
 
         config.is_decoder = True
-        encoder_hidden_states = floats_tensor([self.batch_size, self.seq_length, self.hidden_size])
-        encoder_attention_mask = ids_tensor([self.batch_size, self.seq_length], vocab_size=2)
 
         return (
             config,
             input_ids,
-            token_type_ids,
             input_mask,
             sequence_labels,
             token_labels,
             choice_labels,
-            encoder_hidden_states,
-            encoder_attention_mask,
         )
 
-    def create_and_check_model(
-        self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
-    ):
+    def create_and_check_model(self, config, input_ids, input_mask, sequence_labels, token_labels, choice_labels):
         model = JambaModel(config=config)
         model.to(torch_device)
         model.eval()
-        result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids)
-        result = model(input_ids, token_type_ids=token_type_ids)
+        result = model(input_ids, attention_mask=input_mask)
+        result = model(input_ids)
         result = model(input_ids)
         self.parent.assertEqual(result.last_hidden_state.shape, (self.batch_size, self.seq_length, self.hidden_size))
 
@@ -171,13 +155,10 @@ class JambaModelTester:
         self,
         config,
         input_ids,
-        token_type_ids,
         input_mask,
         sequence_labels,
         token_labels,
         choice_labels,
-        encoder_hidden_states,
-        encoder_attention_mask,
     ):
         config.add_cross_attention = True
         model = JambaModel(config)
@@ -186,24 +167,18 @@ class JambaModelTester:
         result = model(
             input_ids,
             attention_mask=input_mask,
-            token_type_ids=token_type_ids,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
         )
         result = model(
             input_ids,
             attention_mask=input_mask,
-            token_type_ids=token_type_ids,
-            encoder_hidden_states=encoder_hidden_states,
         )
-        result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids)
+        result = model(input_ids, attention_mask=input_mask)
         self.parent.assertEqual(result.last_hidden_state.shape, (self.batch_size, self.seq_length, self.hidden_size))
 
     def create_and_check_for_causal_lm(
         self,
         config,
         input_ids,
-        token_type_ids,
         input_mask,
         sequence_labels,
         token_labels,
@@ -214,29 +189,17 @@ class JambaModelTester:
         model = JambaForCausalLM(config=config)
         model.to(torch_device)
         model.eval()
-        result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=token_labels)
-        self.parent.assertEqual(result.logits.shape, (self.batch_size, self.seq_length, self.vocab_size))
-
-    def create_and_check_for_masked_lm(
-        self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
-    ):
-        model = JambaForMaskedLM(config=config)
-        model.to(torch_device)
-        model.eval()
-        result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=token_labels)
+        result = model(input_ids, attention_mask=input_mask, labels=token_labels)
         self.parent.assertEqual(result.logits.shape, (self.batch_size, self.seq_length, self.vocab_size))
 
     def create_and_check_decoder_model_past_large_inputs(
         self,
         config,
         input_ids,
-        token_type_ids,
         input_mask,
         sequence_labels,
         token_labels,
         choice_labels,
-        encoder_hidden_states,
-        encoder_attention_mask,
     ):
         config.is_decoder = True
         config.add_cross_attention = True
@@ -248,8 +211,6 @@ class JambaModelTester:
         outputs = model(
             input_ids,
             attention_mask=input_mask,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
             use_cache=True,
         )
         past_key_values = outputs.past_key_values
@@ -265,15 +226,11 @@ class JambaModelTester:
         output_from_no_past = model(
             next_input_ids,
             attention_mask=next_attention_mask,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
             output_hidden_states=True,
         )["hidden_states"][0]
         output_from_past = model(
             next_tokens,
             attention_mask=next_attention_mask,
-            encoder_hidden_states=encoder_hidden_states,
-            encoder_attention_mask=encoder_attention_mask,
             past_key_values=past_key_values,
             output_hidden_states=True,
         )["hidden_states"][0]
@@ -288,72 +245,27 @@ class JambaModelTester:
         # test that outputs are equal for slice
         self.parent.assertTrue(torch.allclose(output_from_past_slice, output_from_no_past_slice, atol=1e-3))
 
-    def create_and_check_for_question_answering(
-        self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
-    ):
-        model = JambaForQuestionAnswering(config=config)
-        model.to(torch_device)
-        model.eval()
-        result = model(
-            input_ids,
-            attention_mask=input_mask,
-            token_type_ids=token_type_ids,
-            start_positions=sequence_labels,
-            end_positions=sequence_labels,
-        )
-        self.parent.assertEqual(result.start_logits.shape, (self.batch_size, self.seq_length))
-        self.parent.assertEqual(result.end_logits.shape, (self.batch_size, self.seq_length))
-
     def create_and_check_for_sequence_classification(
-        self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
+        self, config, input_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
         config.num_labels = self.num_labels
         model = JambaForSequenceClassification(config)
         model.to(torch_device)
         model.eval()
-        result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=sequence_labels)
+        result = model(input_ids, attention_mask=input_mask, labels=sequence_labels)
         self.parent.assertEqual(result.logits.shape, (self.batch_size, self.num_labels))
-
-    def create_and_check_for_token_classification(
-        self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
-    ):
-        config.num_labels = self.num_labels
-        model = JambaForTokenClassification(config=config)
-        model.to(torch_device)
-        model.eval()
-        result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=token_labels)
-        self.parent.assertEqual(result.logits.shape, (self.batch_size, self.seq_length, self.num_labels))
-
-    def create_and_check_for_multiple_choice(
-        self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
-    ):
-        config.num_choices = self.num_choices
-        model = JambaForMultipleChoice(config=config)
-        model.to(torch_device)
-        model.eval()
-        multiple_choice_inputs_ids = input_ids.unsqueeze(1).expand(-1, self.num_choices, -1).contiguous()
-        multiple_choice_token_type_ids = token_type_ids.unsqueeze(1).expand(-1, self.num_choices, -1).contiguous()
-        multiple_choice_input_mask = input_mask.unsqueeze(1).expand(-1, self.num_choices, -1).contiguous()
-        result = model(
-            multiple_choice_inputs_ids,
-            attention_mask=multiple_choice_input_mask,
-            token_type_ids=multiple_choice_token_type_ids,
-            labels=choice_labels,
-        )
-        self.parent.assertEqual(result.logits.shape, (self.batch_size, self.num_choices))
 
     def prepare_config_and_inputs_for_common(self):
         config_and_inputs = self.prepare_config_and_inputs()
         (
             config,
             input_ids,
-            token_type_ids,
             input_mask,
             sequence_labels,
             token_labels,
             choice_labels,
         ) = config_and_inputs
-        inputs_dict = {"input_ids": input_ids, "token_type_ids": token_type_ids, "attention_mask": input_mask}
+        inputs_dict = {"input_ids": input_ids, "attention_mask": input_mask}
         return config, inputs_dict
 
 
@@ -362,17 +274,15 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
     all_model_classes = (
         (
             JambaModel,
-            JambaForMaskedLM,
             JambaForCausalLM,
-            JambaForMultipleChoice,
-            JambaForQuestionAnswering,
             JambaForSequenceClassification,
-            JambaForTokenClassification,
         )
         if is_torch_available()
         else ()
     )
     all_generative_model_classes = (JambaForCausalLM,) if is_torch_available() else ()
+    test_headmasking = False
+    test_pruning = False
 
     def setUp(self):
         self.model_tester = JambaModelTester(self)
@@ -391,29 +301,13 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
             config_and_inputs[0].position_embedding_type = type
             self.model_tester.create_and_check_model(*config_and_inputs)
 
-    def test_for_masked_lm(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs()
-        self.model_tester.create_and_check_for_masked_lm(*config_and_inputs)
-
-    def test_for_multiple_choice(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs()
-        self.model_tester.create_and_check_for_multiple_choice(*config_and_inputs)
-
     def test_decoder_model_past_with_large_inputs(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs_for_decoder()
         self.model_tester.create_and_check_decoder_model_past_large_inputs(*config_and_inputs)
 
-    def test_for_question_answering(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs()
-        self.model_tester.create_and_check_for_question_answering(*config_and_inputs)
-
     def test_for_sequence_classification(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
         self.model_tester.create_and_check_for_sequence_classification(*config_and_inputs)
-
-    def test_for_token_classification(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs()
-        self.model_tester.create_and_check_for_token_classification(*config_and_inputs)
 
     def test_model_as_decoder(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs_for_decoder()
@@ -424,13 +318,10 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
         (
             config,
             input_ids,
-            token_type_ids,
             input_mask,
             sequence_labels,
             token_labels,
             choice_labels,
-            encoder_hidden_states,
-            encoder_attention_mask,
         ) = self.model_tester.prepare_config_and_inputs_for_decoder()
 
         input_mask = None
@@ -438,14 +329,143 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
         self.model_tester.create_and_check_model_as_decoder(
             config,
             input_ids,
-            token_type_ids,
             input_mask,
             sequence_labels,
             token_labels,
             choice_labels,
-            encoder_hidden_states,
-            encoder_attention_mask,
         )
+
+    def test_initialization(self):
+        r"""
+        Overriding the test_initialization test as the A_log and D params of the Mamba block are initialized differently
+        """
+        config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
+
+        configs_no_init = _config_zero_init(config)
+        for model_class in self.all_model_classes:
+            model = model_class(config=configs_no_init)
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    if "A_log" in name:
+                        A = torch.arange(1, config.mamba_d_state + 1, dtype=torch.float32)[None, :]
+                        self.assertTrue(torch.allclose(param.data, torch.log(A), atol=1e-5, rtol=1e-5))
+                    elif "D" in name:
+                        # check if it's a ones like
+                        self.assertTrue(torch.allclose(param.data, torch.ones_like(param.data), atol=1e-5, rtol=1e-5))
+                    else:
+                        self.assertIn(
+                            ((param.data.mean() * 1e9).round() / 1e9).item(),
+                            [0.0, 1.0],
+                            msg=f"Parameter {name} of model {model_class} seems not properly initialized",
+                        )
+
+    def test_mismatched_shapes_have_properly_initialized_weights(self):
+        r"""
+        Overriding the test_mismatched_shapes_have_properly_initialized_weights test because A_log and D params of the
+        Mamba block are initialized differently and we tested that in test_initialization
+        """
+        pass
+
+    def test_attention_outputs(self):
+        r"""
+        Overriding the test_attention_outputs test as the Jamba model outputs attention only for its attention layers
+        """
+        config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
+        config.return_dict = True
+
+        seq_len = getattr(self.model_tester, "seq_length", None)
+        encoder_seq_length = getattr(self.model_tester, "encoder_seq_length", seq_len)
+        encoder_key_length = getattr(self.model_tester, "key_length", encoder_seq_length)
+
+        for model_class in self.all_model_classes:
+            inputs_dict["output_attentions"] = True
+            inputs_dict["output_hidden_states"] = False
+            config.return_dict = True
+            model = model_class(config)
+            model.to(torch_device)
+            model.eval()
+            with torch.no_grad():
+                outputs = model(**self._prepare_for_class(inputs_dict, model_class))
+            attentions = outputs.encoder_attentions if config.is_encoder_decoder else outputs.attentions
+            self.assertEqual(len(attentions), self.model_tester.num_hidden_layers)
+
+            # check that output_attentions also work using config
+            del inputs_dict["output_attentions"]
+            config.output_attentions = True
+            model = model_class(config)
+            model.to(torch_device)
+            model.eval()
+            with torch.no_grad():
+                outputs = model(**self._prepare_for_class(inputs_dict, model_class))
+            attentions = outputs.encoder_attentions if config.is_encoder_decoder else outputs.attentions
+            self.assertEqual(len(attentions), self.model_tester.num_hidden_layers)
+
+            attn_layer_idx = model.config.attn_layer_offset
+            self.assertListEqual(
+                list(attentions[attn_layer_idx].shape[-3:]),
+                [self.model_tester.num_attention_heads, encoder_seq_length, encoder_key_length],
+            )
+            out_len = len(outputs)
+
+            # Check attention is always last and order is fine
+            inputs_dict["output_attentions"] = True
+            inputs_dict["output_hidden_states"] = True
+            model = model_class(config)
+            model.to(torch_device)
+            model.eval()
+            with torch.no_grad():
+                outputs = model(**self._prepare_for_class(inputs_dict, model_class))
+
+            if hasattr(self.model_tester, "num_hidden_states_types"):
+                added_hidden_states = self.model_tester.num_hidden_states_types
+            elif self.is_encoder_decoder:
+                added_hidden_states = 2
+            else:
+                added_hidden_states = 1
+            self.assertEqual(out_len + added_hidden_states, len(outputs))
+
+            self_attentions = outputs.encoder_attentions if config.is_encoder_decoder else outputs.attentions
+
+            self.assertEqual(len(self_attentions), self.model_tester.num_hidden_layers)
+            self.assertListEqual(
+                list(self_attentions[attn_layer_idx].shape[-3:]),
+                [self.model_tester.num_attention_heads, encoder_seq_length, encoder_key_length],
+            )
+
+    def test_retain_grad_hidden_states_attentions(self):
+        r"""
+        Overriding the test_attention_outputs test as the Jamba model outputs attention only for its attention layers
+        """
+        config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
+        config.output_hidden_states = True
+        config.output_attentions = self.has_attentions
+
+        # no need to test all models as different heads yield the same functionality
+        model_class = self.all_model_classes[0]
+        model = model_class(config)
+        model.to(torch_device)
+        attn_layer_idx = model.config.attn_layer_offset
+
+        inputs = self._prepare_for_class(inputs_dict, model_class)
+
+        outputs = model(**inputs)
+
+        output = outputs[0]
+
+        # Encoder-/Decoder-only models
+        hidden_states = outputs.hidden_states[0]
+        hidden_states.retain_grad()
+
+        if self.has_attentions:
+            attentions = outputs.attentions[attn_layer_idx]
+            attentions.retain_grad()
+
+        output.flatten()[0].backward(retain_graph=True)
+
+        self.assertIsNotNone(hidden_states.grad)
+
+        if self.has_attentions:
+            self.assertIsNotNone(attentions.grad)
 
     @slow
     def test_model_from_pretrained(self):
@@ -455,6 +475,7 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
 
 
 @require_torch
+@unittest.skip("Need to rewrite")
 class JambaModelIntegrationTest(unittest.TestCase):
     @slow
     def test_inference_masked_lm(self):
