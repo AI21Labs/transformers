@@ -759,7 +759,7 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
         if self.attention_layer_idx is None and len(key_states.shape) == 4:
             self.attention_layer_idx = layer_idx
         if self.attention_layer_idx is not None and layer_idx == self.attention_layer_idx:
-            self.seen_tokens += key_states.shape[-2]
+            self._seen_tokens += key_states.shape[-2]
 
         # Update the cache
         if len(self.key_cache) <= layer_idx:
