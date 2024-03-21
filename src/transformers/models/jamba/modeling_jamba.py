@@ -50,9 +50,12 @@ from ...utils import (
     logging,
     replace_return_docstrings,
 )
-from ...utils.import_utils import is_torch_fx_available, is_flash_attn_2_available, is_mamba_ssm_available, \
-    is_causal_conv1d_available
-
+from ...utils.import_utils import (
+    is_causal_conv1d_available,
+    is_flash_attn_2_available,
+    is_mamba_ssm_available,
+    is_torch_fx_available,
+)
 from .configuration_jamba import JambaConfig
 
 

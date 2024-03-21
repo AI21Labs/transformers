@@ -459,7 +459,6 @@ _import_structure = {
         "FunnelTokenizer",
     ],
     "models.fuyu": ["FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP", "FuyuConfig"],
-    "models.jamba": ["JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP", "JambaConfig"],
     "models.gemma": ["GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GemmaConfig"],
     "models.git": [
         "GIT_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -516,6 +515,7 @@ _import_structure = {
         "InstructBlipQFormerConfig",
         "InstructBlipVisionConfig",
     ],
+    "models.jamba": ["JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP", "JambaConfig"],
     "models.jukebox": [
         "JUKEBOX_PRETRAINED_CONFIG_ARCHIVE_MAP",
         "JukeboxConfig",
@@ -2270,15 +2270,6 @@ else:
         ]
     )
     _import_structure["models.fuyu"].extend(["FuyuForCausalLM", "FuyuPreTrainedModel"])
-    _import_structure["models.jamba"].extend(
-        [
-            "JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "JambaForCausalLM",
-            "JambaForSequenceClassification",
-            "JambaModel",
-            "JambaPreTrainedModel",
-        ]
-    )
     _import_structure["models.gemma"].extend(
         [
             "GemmaForCausalLM",
@@ -2450,6 +2441,15 @@ else:
             "InstructBlipPreTrainedModel",
             "InstructBlipQFormerModel",
             "InstructBlipVisionModel",
+        ]
+    )
+    _import_structure["models.jamba"].extend(
+        [
+            "JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "JambaForCausalLM",
+            "JambaForSequenceClassification",
+            "JambaModel",
+            "JambaPreTrainedModel",
         ]
     )
     _import_structure["models.jukebox"].extend(
@@ -5321,7 +5321,6 @@ if TYPE_CHECKING:
         FunnelTokenizer,
     )
     from .models.fuyu import FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP, FuyuConfig
-    from .models.jamba import JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP, JambaConfig
     from .models.gemma import GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP, GemmaConfig
     from .models.git import (
         GIT_PRETRAINED_CONFIG_ARCHIVE_MAP,
@@ -5377,6 +5376,7 @@ if TYPE_CHECKING:
         InstructBlipQFormerConfig,
         InstructBlipVisionConfig,
     )
+    from .models.jamba import JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP, JambaConfig
     from .models.jukebox import (
         JUKEBOX_PRETRAINED_CONFIG_ARCHIVE_MAP,
         JukeboxConfig,
@@ -6983,15 +6983,6 @@ if TYPE_CHECKING:
             FuyuForCausalLM,
             FuyuPreTrainedModel,
         )
-
-        # PyTorch model imports
-        from .models.jamba import (
-            JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
-            JambaForCausalLM,
-            JambaForSequenceClassification,
-            JambaModel,
-            JambaPreTrainedModel,
-        )
         from .models.gemma import (
             GemmaForCausalLM,
             GemmaForSequenceClassification,
@@ -7128,6 +7119,15 @@ if TYPE_CHECKING:
             InstructBlipPreTrainedModel,
             InstructBlipQFormerModel,
             InstructBlipVisionModel,
+        )
+
+        # PyTorch model imports
+        from .models.jamba import (
+            JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
+            JambaForCausalLM,
+            JambaForSequenceClassification,
+            JambaModel,
+            JambaPreTrainedModel,
         )
         from .models.jukebox import (
             JUKEBOX_PRETRAINED_MODEL_ARCHIVE_LIST,
