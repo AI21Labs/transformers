@@ -1206,25 +1206,15 @@ class JambaSparseMoeBlock(nn.Module):
         return final_hidden_states, router_logits
 
 
-class JambaDecoderLayer(nn.Module):
-    def __init__(self, config: JambaConfig, layer_idx: int, is_attn_layer: bool, is_expert_layer: bool):
+class JambaAttentionDecoderLayer(nn.Module):
+    def __init__(self, config: JambaConfig, num_experts: int, layer_idx: int):
         super().__init__()
 
-        self.is_attn_layer = is_attn_layer
-        self.is_expert_layer = is_expert_layer
+        self.self_attn = JAMBA_ATTENTION_CLASSES[config._attn_implementation](config, layer_idx)
 
-        self.hidden_size = config.hidden_size
-
-        if self.is_attn_layer:
-            self.self_attn = JAMBA_ATTENTION_CLASSES[config._attn_implementation](config, layer_idx)
-        else:
-            self.mamba = JambaMambaMixer(config=config, layer_idx=layer_idx)
-
-        actual_num_experts = config.num_experts if self.is_expert_layer else 1
-        actual_num_experts_per_tok = config.num_experts_per_tok if self.is_expert_layer else 1
-
+        num_experts_per_tok = config.num_experts_per_tok if num_experts > 1 else 1
         self.moe = JambaSparseMoeBlock(
-            config, num_experts=actual_num_experts, num_experts_per_tok=actual_num_experts_per_tok
+            config, num_experts=num_experts, num_experts_per_tok=num_experts_per_tok
         )
         self.input_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.pre_moe_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
@@ -1265,29 +1255,95 @@ class JambaDecoderLayer(nn.Module):
 
         hidden_states = self.input_layernorm(hidden_states)
 
-        # check the layer type and forward accordingly
+        hidden_states, self_attn_weights, present_key_value = self.self_attn(
+            hidden_states=hidden_states,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            past_key_value=past_key_value,
+            output_attentions=output_attentions,
+            use_cache=use_cache,
+        )
 
-        if self.is_attn_layer:
-            hidden_states, self_attn_weights, present_key_value = self.self_attn(
-                hidden_states=hidden_states,
-                attention_mask=attention_mask,
-                position_ids=position_ids,
-                past_key_value=past_key_value,
-                output_attentions=output_attentions,
-                use_cache=use_cache,
-            )
-
-        else:
-            # mamba layer
-            hidden_states, present_key_value = self.mamba(
-                hidden_states=hidden_states,
-                past_key_value=past_key_value,
-            )
-            self_attn_weights = None
-
-        #   residual connection after mamba/attention
+        # residual connection after attention
         hidden_states = residual + hidden_states
-        # Fully Connected
+        # Experts
+        residual = hidden_states
+        hidden_states = self.pre_moe_layernorm(hidden_states)
+        hidden_states, router_logits = self.moe(hidden_states)
+        hidden_states = residual + hidden_states
+
+        outputs = (hidden_states,)
+
+        if output_attentions:
+            outputs += (self_attn_weights,)
+
+        if use_cache:
+            outputs += (present_key_value,)
+
+        if output_router_logits:
+            outputs += (router_logits,)
+
+        return outputs
+
+
+class JambaMambaDecoderLayer(nn.Module):
+    def __init__(self, config: JambaConfig, num_experts: int, layer_idx: int):
+        super().__init__()
+
+        self.mamba = JambaMambaMixer(config=config, layer_idx=layer_idx)
+
+        num_experts_per_tok = config.num_experts_per_tok if num_experts > 1 else 1
+        self.moe = JambaSparseMoeBlock(
+            config, num_experts=num_experts, num_experts_per_tok=num_experts_per_tok
+        )
+        self.input_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.pre_moe_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        position_ids: Optional[torch.LongTensor] = None,
+        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        output_attentions: Optional[bool] = False,
+        output_router_logits: Optional[bool] = False,
+        use_cache: Optional[bool] = False,
+        **kwargs,
+    ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
+        if "padding_mask" in kwargs:
+            warnings.warn(
+                "Passing `padding_mask` is deprecated and will be removed in v4.37. Please make sure use `attention_mask` instead.`"
+            )
+        """
+        Args:
+            hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
+            attention_mask (`torch.FloatTensor`, *optional*): attention mask of size
+                `(batch, sequence_length)` where padding elements are indicated by 0.
+            past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
+            output_attentions (`bool`, *optional*):
+                Whether or not to return the attentions tensors of all attention layers. See `attentions` under
+                returned tensors for more detail.
+            output_router_logits (`bool`, *optional*):
+                Whether or not to return the logits of all the routers. They are useful for computing the router loss, and
+                should not be returned during inference.
+            use_cache (`bool`, *optional*):
+                If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding
+                (see `past_key_values`).
+        """
+
+        residual = hidden_states
+
+        hidden_states = self.input_layernorm(hidden_states)
+
+        hidden_states, present_key_value = self.mamba(
+            hidden_states=hidden_states,
+            past_key_value=past_key_value,
+        )
+        self_attn_weights = None
+
+        # residual connection after mamba
+        hidden_states = residual + hidden_states
+        # Experts
         residual = hidden_states
         hidden_states = self.pre_moe_layernorm(hidden_states)
         hidden_states, router_logits = self.moe(hidden_states)
@@ -1440,25 +1496,21 @@ class JambaModel(JambaPreTrainedModel):
 
         self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size, self.padding_idx)
 
-        #   init each model layer, decide if it's mamba/attention and has experts and pass it down
-
+        # init each model layer, decide if it's mamba/attention and has experts or not
         decoder_layers = []
         for i in range(config.num_hidden_layers):
             is_attn = True if (i - self.config.attn_layer_offset) % self.config.attn_layer_period == 0 else False
             is_expert = True if (i - self.config.expert_layer_offset) % self.config.expert_layer_period == 0 else False
 
-            decoder_layers.append(
-                JambaDecoderLayer(
-                    config,
-                    is_attn_layer=is_attn,
-                    is_expert_layer=is_expert,
-                    layer_idx=i,
-                )
-            )
+            num_experts = self.config.num_experts if is_expert else 1
+            if is_attn:
+                decoder_layers.append(JambaAttentionDecoderLayer(config, num_experts=num_experts, layer_idx=i))
+            else:
+                decoder_layers.append(JambaMambaDecoderLayer(config, num_experts=num_experts, layer_idx=i))
 
-        if not any(layer.is_attn_layer for layer in decoder_layers):
+        if not any(isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers):
             raise ValueError("At least one layer in the decoder must be an attention layer")
-        self._attn_layer_index = [layer.is_attn_layer for layer in decoder_layers].index(True)
+        self._attn_layer_index = [isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers].index(True)
 
         self.layers = nn.ModuleList(decoder_layers)
 
@@ -1521,9 +1573,7 @@ class JambaModel(JambaPreTrainedModel):
                 use_cache = False
 
         if use_cache:
-            if isinstance(past_key_values, Cache) and not isinstance(
-                past_key_values, HybridMambaAttentionDynamicCache
-            ):
+            if isinstance(past_key_values, Cache) and not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
                 raise ValueError(
                     "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
                 )
