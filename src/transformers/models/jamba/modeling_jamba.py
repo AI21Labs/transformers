@@ -50,19 +50,17 @@ from ...utils import (
     logging,
     replace_return_docstrings,
 )
-from ...utils.import_utils import is_torch_fx_available
+from ...utils.import_utils import is_torch_fx_available, is_flash_attn_2_available, is_mamba_ssm_available, \
+    is_causal_conv1d_available
 
 from .configuration_jamba import JambaConfig
 
 
-# try except block so it'll work with trust_remote_code. Later we can have `if is_flash_attn_2_available():`
-try:
+if is_flash_attn_2_available():
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
 
     _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_func).parameters)
-except ImportError:
-    pass
 
 # This makes `_prepare_4d_causal_attention_mask` a leaf function in the FX graph.
 # It means that the function will not be traced through and simply appear as a node in the graph.
@@ -72,17 +70,15 @@ if is_torch_fx_available():
 
     _prepare_4d_causal_attention_mask = torch.fx.wrap(_prepare_4d_causal_attention_mask)
 
-# try except block so it'll work with trust_remote_code. Later we can have `if is_mamba_ssm_available():`
-try:
+if is_mamba_ssm_available():
     from mamba_ssm.ops.selective_scan_interface import mamba_inner_fn, selective_scan_fn
     from mamba_ssm.ops.triton.selective_state_update import selective_state_update
-except ImportError:
+else:
     selective_state_update, selective_scan_fn, mamba_inner_fn = None, None, None
 
-# try except block so it'll work with trust_remote_code. Later we can have `if is_causal_conv1d_available():`
-try:
+if is_causal_conv1d_available():
     from causal_conv1d import causal_conv1d_fn, causal_conv1d_update
-except ImportError:
+else:
     causal_conv1d_update, causal_conv1d_fn = None, None
 
 is_fast_path_available = all(
