@@ -13,9 +13,8 @@
 # limitations under the License.
 from typing import TYPE_CHECKING
 
-from ...utils import OptionalDependencyNotAvailable, _LazyModule, is_tokenizers_available, is_torch_available
+from ...utils import OptionalDependencyNotAvailable, _LazyModule, is_torch_available
 
-# TODO: make sure model classes is correct
 
 _import_structure = {
     "configuration_jamba": ["JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP", "JambaConfig"],
@@ -30,16 +29,10 @@ except OptionalDependencyNotAvailable:
 else:
     _import_structure["modeling_jamba"] = [
         "JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST",
-        "JambaForMaskedLM",
         "JambaForCausalLM",
-        "JambaForMultipleChoice",
-        "JambaForQuestionAnswering",
         "JambaForSequenceClassification",
-        "JambaForTokenClassification",
-        "JambaLayer",
         "JambaModel",
         "JambaPreTrainedModel",
-        "load_tf_weights_in_jamba",
     ]
 
 
@@ -55,15 +48,9 @@ if TYPE_CHECKING:
         from .modeling_jamba import (
             JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
             JambaForCausalLM,
-            JambaForMaskedLM,
-            JambaForMultipleChoice,
-            JambaForQuestionAnswering,
             JambaForSequenceClassification,
-            JambaForTokenClassification,
-            JambaLayer,
             JambaModel,
             JambaPreTrainedModel,
-            load_tf_weights_in_jamba,
         )
 
 

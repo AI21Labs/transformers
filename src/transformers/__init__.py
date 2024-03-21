@@ -20,7 +20,6 @@
 
 __version__ = "4.39.0.dev0"
 
-# TODO: make sure model classes is correct
 
 from typing import TYPE_CHECKING
 
@@ -2275,15 +2274,9 @@ else:
         [
             "JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST",
             "JambaForCausalLM",
-            "JambaForMaskedLM",
-            "JambaForMultipleChoice",
-            "JambaForQuestionAnswering",
             "JambaForSequenceClassification",
-            "JambaForTokenClassification",
-            "JambaLayer",
             "JambaModel",
             "JambaPreTrainedModel",
-            "load_tf_weights_in_jamba",
         ]
     )
     _import_structure["models.gemma"].extend(
@@ -6995,15 +6988,9 @@ if TYPE_CHECKING:
         from .models.jamba import (
             JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
             JambaForCausalLM,
-            JambaForMaskedLM,
-            JambaForMultipleChoice,
-            JambaForQuestionAnswering,
             JambaForSequenceClassification,
-            JambaForTokenClassification,
-            JambaLayer,
             JambaModel,
             JambaPreTrainedModel,
-            load_tf_weights_in_jamba,
         )
         from .models.gemma import (
             GemmaForCausalLM,

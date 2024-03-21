@@ -124,30 +124,7 @@ model = AutoModelForCausalLM.from_pretrained("ai21labs/Jamba-v0.1",
     - forward
 
 
-## JambaForMaskedLM
-
-[[autodoc]] JambaForMaskedLM
-    - forward
-
-
 ## JambaForSequenceClassification
 
 [[autodoc]] transformers.JambaForSequenceClassification
-    - forward
-
-## JambaForMultipleChoice
-
-[[autodoc]] transformers.JambaForMultipleChoice
-    - forward
-
-
-## JambaForTokenClassification
-
-[[autodoc]] transformers.JambaForTokenClassification
-    - forward
-
-
-## JambaForQuestionAnswering
-
-[[autodoc]] JambaForQuestionAnswering
     - forward
