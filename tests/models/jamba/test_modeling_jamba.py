@@ -19,8 +19,8 @@ from transformers import JambaConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
 
 from ...test_configuration_common import ConfigTester
-from ...test_modeling_common import ModelTesterMixin, ids_tensor, random_attention_mask, \
-    _config_zero_init
+from ...test_modeling_common import ModelTesterMixin, _config_zero_init, ids_tensor, random_attention_mask
+
 
 if is_torch_available():
     import torch
@@ -479,7 +479,7 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
 class JambaModelIntegrationTest(unittest.TestCase):
     @slow
     def test_inference_masked_lm(self):
-        model = JambaForMaskedLM.from_pretrained("ai21labs/jamba-small")
+        model = JambaForCausalLM.from_pretrained("ai21labs/jamba-small")
         input_ids = torch.tensor([[0, 1, 2, 3, 4, 5]])
         output = model(input_ids)[0]
 

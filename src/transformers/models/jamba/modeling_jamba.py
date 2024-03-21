@@ -1213,9 +1213,7 @@ class JambaAttentionDecoderLayer(nn.Module):
         self.self_attn = JAMBA_ATTENTION_CLASSES[config._attn_implementation](config, layer_idx)
 
         num_experts_per_tok = config.num_experts_per_tok if num_experts > 1 else 1
-        self.moe = JambaSparseMoeBlock(
-            config, num_experts=num_experts, num_experts_per_tok=num_experts_per_tok
-        )
+        self.moe = JambaSparseMoeBlock(config, num_experts=num_experts, num_experts_per_tok=num_experts_per_tok)
         self.input_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.pre_moe_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
@@ -1266,6 +1264,7 @@ class JambaAttentionDecoderLayer(nn.Module):
 
         # residual connection after attention
         hidden_states = residual + hidden_states
+
         # Experts
         residual = hidden_states
         hidden_states = self.pre_moe_layernorm(hidden_states)
@@ -1293,9 +1292,7 @@ class JambaMambaDecoderLayer(nn.Module):
         self.mamba = JambaMambaMixer(config=config, layer_idx=layer_idx)
 
         num_experts_per_tok = config.num_experts_per_tok if num_experts > 1 else 1
-        self.moe = JambaSparseMoeBlock(
-            config, num_experts=num_experts, num_experts_per_tok=num_experts_per_tok
-        )
+        self.moe = JambaSparseMoeBlock(config, num_experts=num_experts, num_experts_per_tok=num_experts_per_tok)
         self.input_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.pre_moe_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
@@ -1343,6 +1340,7 @@ class JambaMambaDecoderLayer(nn.Module):
 
         # residual connection after mamba
         hidden_states = residual + hidden_states
+
         # Experts
         residual = hidden_states
         hidden_states = self.pre_moe_layernorm(hidden_states)
@@ -1510,7 +1508,9 @@ class JambaModel(JambaPreTrainedModel):
 
         if not any(isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers):
             raise ValueError("At least one layer in the decoder must be an attention layer")
-        self._attn_layer_index = [isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers].index(True)
+        self._attn_layer_index = [isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers].index(
+            True
+        )
 
         self.layers = nn.ModuleList(decoder_layers)
 
@@ -1573,7 +1573,9 @@ class JambaModel(JambaPreTrainedModel):
                 use_cache = False
 
         if use_cache:
-            if isinstance(past_key_values, Cache) and not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
+            if isinstance(past_key_values, Cache) and not isinstance(
+                past_key_values, HybridMambaAttentionDynamicCache
+            ):
                 raise ValueError(
                     "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
                 )
