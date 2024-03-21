@@ -12,12 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch Gaia model. """
+""" Testing suite for the PyTorch Jamba model. """
 
 
 import unittest
 
-from transformers import GaiaConfig, is_torch_available
+from transformers import JambaConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
 
 from ...test_configuration_common import ConfigTester
@@ -28,20 +28,20 @@ if is_torch_available():
     import torch
 
     from transformers import (
-        GaiaForCausalLM,
-        GaiaForMaskedLM,
-        GaiaForMultipleChoice,
-        GaiaForQuestionAnswering,
-        GaiaForSequenceClassification,
-        GaiaForTokenClassification,
-        GaiaModel,
+        JambaForCausalLM,
+        JambaForMaskedLM,
+        JambaForMultipleChoice,
+        JambaForQuestionAnswering,
+        JambaForSequenceClassification,
+        JambaForTokenClassification,
+        JambaModel,
     )
-    from transformers.models.gaia.modeling_gaia import (
-        GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
+    from transformers.models.jamba.modeling_jamba import (
+        JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
     )
 
 
-class GaiaModelTester:
+class JambaModelTester:
     def __init__(
         self,
         parent,
@@ -114,7 +114,7 @@ class GaiaModelTester:
         return config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
 
     def get_config(self):
-        return GaiaConfig(
+        return JambaConfig(
             vocab_size=self.vocab_size,
             hidden_size=self.hidden_size,
             num_hidden_layers=self.num_hidden_layers,
@@ -159,7 +159,7 @@ class GaiaModelTester:
     def create_and_check_model(
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
-        model = GaiaModel(config=config)
+        model = JambaModel(config=config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids)
@@ -180,7 +180,7 @@ class GaiaModelTester:
         encoder_attention_mask,
     ):
         config.add_cross_attention = True
-        model = GaiaModel(config)
+        model = JambaModel(config)
         model.to(torch_device)
         model.eval()
         result = model(
@@ -211,7 +211,7 @@ class GaiaModelTester:
         encoder_hidden_states,
         encoder_attention_mask,
     ):
-        model = GaiaForCausalLM(config=config)
+        model = JambaForCausalLM(config=config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=token_labels)
@@ -220,7 +220,7 @@ class GaiaModelTester:
     def create_and_check_for_masked_lm(
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
-        model = GaiaForMaskedLM(config=config)
+        model = JambaForMaskedLM(config=config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=token_labels)
@@ -240,7 +240,7 @@ class GaiaModelTester:
     ):
         config.is_decoder = True
         config.add_cross_attention = True
-        model = GaiaForCausalLM(config=config)
+        model = JambaForCausalLM(config=config)
         model.to(torch_device)
         model.eval()
 
@@ -291,7 +291,7 @@ class GaiaModelTester:
     def create_and_check_for_question_answering(
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
-        model = GaiaForQuestionAnswering(config=config)
+        model = JambaForQuestionAnswering(config=config)
         model.to(torch_device)
         model.eval()
         result = model(
@@ -308,7 +308,7 @@ class GaiaModelTester:
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
         config.num_labels = self.num_labels
-        model = GaiaForSequenceClassification(config)
+        model = JambaForSequenceClassification(config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=sequence_labels)
@@ -318,7 +318,7 @@ class GaiaModelTester:
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
         config.num_labels = self.num_labels
-        model = GaiaForTokenClassification(config=config)
+        model = JambaForTokenClassification(config=config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, token_type_ids=token_type_ids, labels=token_labels)
@@ -328,7 +328,7 @@ class GaiaModelTester:
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
         config.num_choices = self.num_choices
-        model = GaiaForMultipleChoice(config=config)
+        model = JambaForMultipleChoice(config=config)
         model.to(torch_device)
         model.eval()
         multiple_choice_inputs_ids = input_ids.unsqueeze(1).expand(-1, self.num_choices, -1).contiguous()
@@ -358,25 +358,25 @@ class GaiaModelTester:
 
 
 @require_torch
-class GaiaModelTest(ModelTesterMixin, unittest.TestCase):
+class JambaModelTest(ModelTesterMixin, unittest.TestCase):
     all_model_classes = (
         (
-            GaiaModel,
-            GaiaForMaskedLM,
-            GaiaForCausalLM,
-            GaiaForMultipleChoice,
-            GaiaForQuestionAnswering,
-            GaiaForSequenceClassification,
-            GaiaForTokenClassification,
+            JambaModel,
+            JambaForMaskedLM,
+            JambaForCausalLM,
+            JambaForMultipleChoice,
+            JambaForQuestionAnswering,
+            JambaForSequenceClassification,
+            JambaForTokenClassification,
         )
         if is_torch_available()
         else ()
     )
-    all_generative_model_classes = (GaiaForCausalLM,) if is_torch_available() else ()
+    all_generative_model_classes = (JambaForCausalLM,) if is_torch_available() else ()
 
     def setUp(self):
-        self.model_tester = GaiaModelTester(self)
-        self.config_tester = ConfigTester(self, config_class=GaiaConfig, hidden_size=37)
+        self.model_tester = JambaModelTester(self)
+        self.config_tester = ConfigTester(self, config_class=JambaConfig, hidden_size=37)
 
     def test_config(self):
         self.config_tester.run_common_tests()
@@ -449,16 +449,16 @@ class GaiaModelTest(ModelTesterMixin, unittest.TestCase):
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in GAIA_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = GaiaModel.from_pretrained(model_name)
+        for model_name in JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
+            model = JambaModel.from_pretrained(model_name)
             self.assertIsNotNone(model)
 
 
 @require_torch
-class GaiaModelIntegrationTest(unittest.TestCase):
+class JambaModelIntegrationTest(unittest.TestCase):
     @slow
     def test_inference_masked_lm(self):
-        model = GaiaForMaskedLM.from_pretrained("ai21labs/gaia-small")
+        model = JambaForMaskedLM.from_pretrained("ai21labs/jamba-small")
         input_ids = torch.tensor([[0, 1, 2, 3, 4, 5]])
         output = model(input_ids)[0]
 

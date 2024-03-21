@@ -10,11 +10,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 -->
 
-# Gaia
+# Jamba
 
 ## Overview
 
-The Gaia model was proposed in [<INSERT PAPER NAME HERE>](<INSERT PAPER LINK HERE>)  by <INSERT AUTHORS HERE>. <INSERT SHORT SUMMARY HERE>
+The Jamba model was proposed in [<INSERT PAPER NAME HERE>](<INSERT PAPER LINK HERE>)  by <INSERT AUTHORS HERE>. <INSERT SHORT SUMMARY HERE>
 
 The abstract from the paper is the following:
 
@@ -26,61 +26,61 @@ Tips:
 
 This model was contributed by [INSERT YOUR HF USERNAME HERE](<https://huggingface.co/<INSERT YOUR HF USERNAME HERE>). The original code can be found [here](<INSERT LINK TO GITHUB REPO HERE>).
 
-## GaiaConfig
+## JambaConfig
 
-[[autodoc]] GaiaConfig
+[[autodoc]] JambaConfig
 
 
-## GaiaTokenizer
+## JambaTokenizer
 
-[[autodoc]] GaiaTokenizer
+[[autodoc]] JambaTokenizer
     - build_inputs_with_special_tokens
     - get_special_tokens_mask
     - create_token_type_ids_from_sequences
     - save_vocabulary
 
 
-## GaiaTokenizerFast
+## JambaTokenizerFast
 
-[[autodoc]] GaiaTokenizerFast
+[[autodoc]] JambaTokenizerFast
 
 
-## GaiaModel
+## JambaModel
 
-[[autodoc]] GaiaModel
+[[autodoc]] JambaModel
     - forward
 
 
-## GaiaForCausalLM
+## JambaForCausalLM
 
-[[autodoc]] GaiaForCausalLM
+[[autodoc]] JambaForCausalLM
     - forward
 
 
-## GaiaForMaskedLM
+## JambaForMaskedLM
 
-[[autodoc]] GaiaForMaskedLM
+[[autodoc]] JambaForMaskedLM
     - forward
 
 
-## GaiaForSequenceClassification
+## JambaForSequenceClassification
 
-[[autodoc]] transformers.GaiaForSequenceClassification
+[[autodoc]] transformers.JambaForSequenceClassification
     - forward
 
-## GaiaForMultipleChoice
+## JambaForMultipleChoice
 
-[[autodoc]] transformers.GaiaForMultipleChoice
-    - forward
-
-
-## GaiaForTokenClassification
-
-[[autodoc]] transformers.GaiaForTokenClassification
+[[autodoc]] transformers.JambaForMultipleChoice
     - forward
 
 
-## GaiaForQuestionAnswering
+## JambaForTokenClassification
 
-[[autodoc]] GaiaForQuestionAnswering
+[[autodoc]] transformers.JambaForTokenClassification
+    - forward
+
+
+## JambaForQuestionAnswering
+
+[[autodoc]] JambaForQuestionAnswering
     - forward

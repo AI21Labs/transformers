@@ -93,7 +93,7 @@ from . import (
     fsmt,
     funnel,
     fuyu,
-    gaia,
+    jamba,
     gemma,
     git,
     glpn,

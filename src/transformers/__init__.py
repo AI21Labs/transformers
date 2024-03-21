@@ -460,7 +460,7 @@ _import_structure = {
         "FunnelTokenizer",
     ],
     "models.fuyu": ["FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP", "FuyuConfig"],
-    "models.gaia": ["GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GaiaConfig"],
+    "models.jamba": ["JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP", "JambaConfig"],
     "models.gemma": ["GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GemmaConfig"],
     "models.git": [
         "GIT_PRETRAINED_CONFIG_ARCHIVE_MAP",
@@ -2271,19 +2271,19 @@ else:
         ]
     )
     _import_structure["models.fuyu"].extend(["FuyuForCausalLM", "FuyuPreTrainedModel"])
-    _import_structure["models.gaia"].extend(
+    _import_structure["models.jamba"].extend(
         [
-            "GAIA_PRETRAINED_MODEL_ARCHIVE_LIST",
-            "GaiaForCausalLM",
-            "GaiaForMaskedLM",
-            "GaiaForMultipleChoice",
-            "GaiaForQuestionAnswering",
-            "GaiaForSequenceClassification",
-            "GaiaForTokenClassification",
-            "GaiaLayer",
-            "GaiaModel",
-            "GaiaPreTrainedModel",
-            "load_tf_weights_in_gaia",
+            "JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST",
+            "JambaForCausalLM",
+            "JambaForMaskedLM",
+            "JambaForMultipleChoice",
+            "JambaForQuestionAnswering",
+            "JambaForSequenceClassification",
+            "JambaForTokenClassification",
+            "JambaLayer",
+            "JambaModel",
+            "JambaPreTrainedModel",
+            "load_tf_weights_in_jamba",
         ]
     )
     _import_structure["models.gemma"].extend(
@@ -5328,7 +5328,7 @@ if TYPE_CHECKING:
         FunnelTokenizer,
     )
     from .models.fuyu import FUYU_PRETRAINED_CONFIG_ARCHIVE_MAP, FuyuConfig
-    from .models.gaia import GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP, GaiaConfig
+    from .models.jamba import JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP, JambaConfig
     from .models.gemma import GEMMA_PRETRAINED_CONFIG_ARCHIVE_MAP, GemmaConfig
     from .models.git import (
         GIT_PRETRAINED_CONFIG_ARCHIVE_MAP,
@@ -6992,18 +6992,18 @@ if TYPE_CHECKING:
         )
 
         # PyTorch model imports
-        from .models.gaia import (
-            GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
-            GaiaForCausalLM,
-            GaiaForMaskedLM,
-            GaiaForMultipleChoice,
-            GaiaForQuestionAnswering,
-            GaiaForSequenceClassification,
-            GaiaForTokenClassification,
-            GaiaLayer,
-            GaiaModel,
-            GaiaPreTrainedModel,
-            load_tf_weights_in_gaia,
+        from .models.jamba import (
+            JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
+            JambaForCausalLM,
+            JambaForMaskedLM,
+            JambaForMultipleChoice,
+            JambaForQuestionAnswering,
+            JambaForSequenceClassification,
+            JambaForTokenClassification,
+            JambaLayer,
+            JambaModel,
+            JambaPreTrainedModel,
+            load_tf_weights_in_jamba,
         )
         from .models.gemma import (
             GemmaForCausalLM,

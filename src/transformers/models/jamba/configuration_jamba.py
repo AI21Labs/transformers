@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Gaia model configuration"""
+""" Jamba model configuration"""
 import math
 
 from transformers.configuration_utils import PretrainedConfig
@@ -22,13 +22,13 @@ from transformers.utils import logging
 logger = logging.get_logger(__name__)
 
 
-class GaiaConfig(PretrainedConfig):
+class JambaConfig(PretrainedConfig):
     r"""
-    This is the configuration class to store the configuration of a [`GaiaModel`]. It is used to instantiate an
-    Gaia model according to the specified arguments, defining the model architecture. Instantiating a configuration
-    with the defaults will yield a similar configuration to that of the gaia-small architecture.
+    This is the configuration class to store the configuration of a [`JambaModel`]. It is used to instantiate an
+    Jamba model according to the specified arguments, defining the model architecture. Instantiating a configuration
+    with the defaults will yield a similar configuration to that of the jamba-small architecture.
 
-    [ai21labs/gaia-small](https://huggingface.co/ai21labs/gaia-small)
+    [ai21labs/jamba-small](https://huggingface.co/ai21labs/Jamba-v0.1)
 
     Configuration objects inherit from [`PretrainedConfig`] and can be used to control the model outputs. Read the
     documentation from [`PretrainedConfig`] for more information.
@@ -36,8 +36,8 @@ class GaiaConfig(PretrainedConfig):
 
     Args:
         vocab_size (`int`, *optional*, defaults to 65536):
-            Vocabulary size of the Gaia model. Defines the number of different tokens that can be represented by the
-            `inputs_ids` passed when calling [`GaiaModel`]
+            Vocabulary size of the Jamba model. Defines the number of different tokens that can be represented by the
+            `inputs_ids` passed when calling [`JambaModel`]
         tie_word_embeddings (`bool`, *optional*, defaults to `False`):
             Whether the model's input and output word embeddings should be tied. Note that this is only relevant if the
             model has a output word embedding layer.
@@ -114,7 +114,7 @@ class GaiaConfig(PretrainedConfig):
 
     """
 
-    model_type = "gaia"
+    model_type = "jamba"
     keys_to_ignore_at_inference = ["past_key_values"]
 
     def __init__(

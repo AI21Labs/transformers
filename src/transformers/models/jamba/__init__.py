@@ -15,9 +15,10 @@ from typing import TYPE_CHECKING
 
 from ...utils import OptionalDependencyNotAvailable, _LazyModule, is_tokenizers_available, is_torch_available
 
+# TODO: make sure model classes is correct
 
 _import_structure = {
-    "configuration_gaia": ["GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP", "GaiaConfig"],
+    "configuration_jamba": ["JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP", "JambaConfig"],
 }
 
 
@@ -27,23 +28,23 @@ try:
 except OptionalDependencyNotAvailable:
     pass
 else:
-    _import_structure["modeling_gaia"] = [
-        "GAIA_PRETRAINED_MODEL_ARCHIVE_LIST",
-        "GaiaForMaskedLM",
-        "GaiaForCausalLM",
-        "GaiaForMultipleChoice",
-        "GaiaForQuestionAnswering",
-        "GaiaForSequenceClassification",
-        "GaiaForTokenClassification",
-        "GaiaLayer",
-        "GaiaModel",
-        "GaiaPreTrainedModel",
-        "load_tf_weights_in_gaia",
+    _import_structure["modeling_jamba"] = [
+        "JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST",
+        "JambaForMaskedLM",
+        "JambaForCausalLM",
+        "JambaForMultipleChoice",
+        "JambaForQuestionAnswering",
+        "JambaForSequenceClassification",
+        "JambaForTokenClassification",
+        "JambaLayer",
+        "JambaModel",
+        "JambaPreTrainedModel",
+        "load_tf_weights_in_jamba",
     ]
 
 
 if TYPE_CHECKING:
-    from .configuration_gaia import GAIA_PRETRAINED_CONFIG_ARCHIVE_MAP, GaiaConfig
+    from .configuration_jamba import JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP, JambaConfig
 
     try:
         if not is_torch_available():
@@ -51,18 +52,18 @@ if TYPE_CHECKING:
     except OptionalDependencyNotAvailable:
         pass
     else:
-        from .modeling_gaia import (
-            GAIA_PRETRAINED_MODEL_ARCHIVE_LIST,
-            GaiaForCausalLM,
-            GaiaForMaskedLM,
-            GaiaForMultipleChoice,
-            GaiaForQuestionAnswering,
-            GaiaForSequenceClassification,
-            GaiaForTokenClassification,
-            GaiaLayer,
-            GaiaModel,
-            GaiaPreTrainedModel,
-            load_tf_weights_in_gaia,
+        from .modeling_jamba import (
+            JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
+            JambaForCausalLM,
+            JambaForMaskedLM,
+            JambaForMultipleChoice,
+            JambaForQuestionAnswering,
+            JambaForSequenceClassification,
+            JambaForTokenClassification,
+            JambaLayer,
+            JambaModel,
+            JambaPreTrainedModel,
+            load_tf_weights_in_jamba,
         )
 
 

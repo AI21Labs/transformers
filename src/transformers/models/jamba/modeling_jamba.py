@@ -17,7 +17,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" PyTorch Gaia model."""
+""" PyTorch Jamba model."""
 import inspect
 import math
 import warnings
@@ -52,7 +52,7 @@ from transformers.utils import (
 )
 from transformers.utils.import_utils import is_torch_fx_available
 
-from .configuration_gaia import GaiaConfig
+from .configuration_jamba import JambaConfig
 
 
 # try except block so it'll work with trust_remote_code. Later we can have `if is_flash_attn_2_available():`
@@ -92,7 +92,7 @@ is_fast_path_available = all(
 
 logger = logging.get_logger(__name__)
 
-_CONFIG_FOR_DOC = "GaiaConfig"
+_CONFIG_FOR_DOC = "JambaConfig"
 
 
 # Copied from transformers.models.mixtral.modeling_mixtral.load_balancing_loss_func
@@ -185,11 +185,11 @@ def _get_unpad_data(attention_mask):
     )
 
 
-# Copied from transformers.models.llama.modeling_llama.LlamaRMSNorm with Llama->Gaia
-class GaiaRMSNorm(nn.Module):
+# Copied from transformers.models.llama.modeling_llama.LlamaRMSNorm with Llama->Jamba
+class JambaRMSNorm(nn.Module):
     def __init__(self, hidden_size, eps=1e-6):
         """
-        GaiaRMSNorm is equivalent to T5LayerNorm
+        JambaRMSNorm is equivalent to T5LayerNorm
         """
         super().__init__()
         self.weight = nn.Parameter(torch.ones(hidden_size))
@@ -216,14 +216,14 @@ def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
     return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
 
 
-# Adapted from transformers.models.mistral.modeling_mistral.MistralAttention with Mistral->Gaia
-class GaiaAttention(nn.Module):
+# Adapted from transformers.models.mistral.modeling_mistral.MistralAttention with Mistral->Jamba
+class JambaAttention(nn.Module):
     """
     Multi-headed attention from 'Attention Is All You Need' paper. Modified to use sliding window attention: Longformer
     and "Generating Long Sequences with Sparse Transformers".
     """
 
-    def __init__(self, config: GaiaConfig, layer_idx: Optional[int] = None):
+    def __init__(self, config: JambaConfig, layer_idx: Optional[int] = None):
         super().__init__()
         self.config = config
         self.layer_idx = layer_idx
@@ -334,10 +334,10 @@ class GaiaAttention(nn.Module):
         return attn_output, attn_weights, past_key_value
 
 
-# Adapted from transformers.models.mistral.modeling_mistral.MistralFlashAttention2 with Mistral->Gaia
-class GaiaFlashAttention2(GaiaAttention):
+# Adapted from transformers.models.mistral.modeling_mistral.MistralFlashAttention2 with Mistral->Jamba
+class JambaFlashAttention2(JambaAttention):
     """
-    Gaia flash attention module. This module inherits from `GaiaAttention` as the weights of the module stays
+    Jamba flash attention module. This module inherits from `JambaAttention` as the weights of the module stays
     untouched. The only required change would be on the forward pass where it needs to correctly call the public API of
     flash attention and deal with padding tokens in case the input contains any of them.
     """
@@ -622,15 +622,15 @@ class GaiaFlashAttention2(GaiaAttention):
         )
 
 
-# Adapted from transformers.models.mistral.modeling_mistral.MistralSdpaAttention with Mistral->Gaia
-class GaiaSdpaAttention(GaiaAttention):
+# Adapted from transformers.models.mistral.modeling_mistral.MistralSdpaAttention with Mistral->Jamba
+class JambaSdpaAttention(JambaAttention):
     """
-    Gaia attention module using torch.nn.functional.scaled_dot_product_attention. This module inherits from
-    `GaiaAttention` as the weights of the module stays untouched. The only changes are on the forward pass to adapt to
+    Jamba attention module using torch.nn.functional.scaled_dot_product_attention. This module inherits from
+    `JambaAttention` as the weights of the module stays untouched. The only changes are on the forward pass to adapt to
     SDPA API.
     """
 
-    # Adapted from GaiaAttention.forward
+    # Adapted from JambaAttention.forward
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -643,7 +643,7 @@ class GaiaSdpaAttention(GaiaAttention):
         if output_attentions:
             # TODO: Improve this warning with e.g. `model.config.attn_implementation = "manual"` once this is implemented.
             logger.warning_once(
-                "GaiaModel is using GaiaSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention implementation, "
+                "JambaModel is using JambaSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention implementation, "
                 'but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
             )
             return super().forward(
@@ -706,10 +706,10 @@ class GaiaSdpaAttention(GaiaAttention):
         return attn_output, None, past_key_value
 
 
-GAIA_ATTENTION_CLASSES = {
-    "eager": GaiaAttention,
-    "flash_attention_2": GaiaFlashAttention2,
-    "sdpa": GaiaSdpaAttention,
+JAMBA_ATTENTION_CLASSES = {
+    "eager": JambaAttention,
+    "flash_attention_2": JambaFlashAttention2,
+    "sdpa": JambaSdpaAttention,
 }
 
 
@@ -798,7 +798,7 @@ class MambaCacheParams:
 
 
 # Adapted from transformers.models.mamba.modeling_mamba.MambaMixer
-class GaiaMambaMixer(nn.Module):
+class JambaMambaMixer(nn.Module):
     """
     Compute ∆, A, B, C, and D the state space parameters and compute the `contextualized_states`.
     A, D are input independent (see Mamba paper [1] Section 3.5.2 "Interpretation of A" for why A isn't selective)
@@ -806,7 +806,7 @@ class GaiaMambaMixer(nn.Module):
     and is why Mamba is called **selective** state spaces)
     """
 
-    def __init__(self, config: GaiaConfig, layer_idx):
+    def __init__(self, config: JambaConfig, layer_idx):
         super().__init__()
         self.layer_idx = layer_idx
         self.hidden_size = config.hidden_size
@@ -848,9 +848,9 @@ class GaiaMambaMixer(nn.Module):
         self.out_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=self.use_bias)
 
         if self.apply_inner_layernorms:
-            self.dt_layernorm = GaiaRMSNorm(self.time_step_rank, eps=config.rms_norm_eps)
-            self.B_layernorm = GaiaRMSNorm(self.ssm_state_size, eps=config.rms_norm_eps)
-            self.C_layernorm = GaiaRMSNorm(self.ssm_state_size, eps=config.rms_norm_eps)
+            self.dt_layernorm = JambaRMSNorm(self.time_step_rank, eps=config.rms_norm_eps)
+            self.B_layernorm = JambaRMSNorm(self.ssm_state_size, eps=config.rms_norm_eps)
+            self.C_layernorm = JambaRMSNorm(self.ssm_state_size, eps=config.rms_norm_eps)
         else:
             self.dt_layernorm = None
             self.B_layernorm = None
@@ -1099,8 +1099,8 @@ class GaiaMambaMixer(nn.Module):
         return res, past_key_value
 
 
-class GaiaMLP(nn.Module):
-    def __init__(self, config: GaiaConfig):
+class JambaMLP(nn.Module):
+    def __init__(self, config: JambaConfig):
         super().__init__()
         self.ffn_dim = config.intermediate_size
         self.hidden_dim = config.hidden_size
@@ -1115,8 +1115,8 @@ class GaiaMLP(nn.Module):
         return self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
 
 
-# Copied from transformers.models.mixtral.modeling_mixtral.MixtralSparseMoeBlock with Mistral->Gaia
-class GaiaSparseMoeBlock(nn.Module):
+# Adapted from transformers.models.mixtral.modeling_mixtral.MixtralSparseMoeBlock with Mistral->Jamba
+class JambaSparseMoeBlock(nn.Module):
     """
     This implementation is
     strictly equivalent to standard MoE with full capacity (no
@@ -1128,7 +1128,7 @@ class GaiaSparseMoeBlock(nn.Module):
     and memory on padding.
     """
 
-    def __init__(self, config: GaiaConfig, num_experts: int, num_experts_per_tok: int):
+    def __init__(self, config: JambaConfig, num_experts: int, num_experts_per_tok: int):
         super().__init__()
         self.hidden_dim = config.hidden_size
         self.ffn_dim = config.intermediate_size
@@ -1143,7 +1143,7 @@ class GaiaSparseMoeBlock(nn.Module):
         else:
             self.router = None
 
-        self.experts = nn.ModuleList([GaiaMLP(config) for _ in range(self.num_experts)])
+        self.experts = nn.ModuleList([JambaMLP(config) for _ in range(self.num_experts)])
 
     def forward(self, hidden_states: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """ """
@@ -1202,8 +1202,8 @@ class GaiaSparseMoeBlock(nn.Module):
         return final_hidden_states, router_logits
 
 
-class GaiaDecoderLayer(nn.Module):
-    def __init__(self, config: GaiaConfig, layer_idx: int, is_attn_layer: bool, is_expert_layer: bool):
+class JambaDecoderLayer(nn.Module):
+    def __init__(self, config: JambaConfig, layer_idx: int, is_attn_layer: bool, is_expert_layer: bool):
         super().__init__()
 
         self.is_attn_layer = is_attn_layer
@@ -1212,18 +1212,18 @@ class GaiaDecoderLayer(nn.Module):
         self.hidden_size = config.hidden_size
 
         if self.is_attn_layer:
-            self.self_attn = GAIA_ATTENTION_CLASSES[config._attn_implementation](config, layer_idx)
+            self.self_attn = JAMBA_ATTENTION_CLASSES[config._attn_implementation](config, layer_idx)
         else:
-            self.mamba = GaiaMambaMixer(config=config, layer_idx=layer_idx)
+            self.mamba = JambaMambaMixer(config=config, layer_idx=layer_idx)
 
         actual_num_experts = config.num_experts if self.is_expert_layer else 1
         actual_num_experts_per_tok = config.num_experts_per_tok if self.is_expert_layer else 1
 
-        self.moe = GaiaSparseMoeBlock(
+        self.moe = JambaSparseMoeBlock(
             config, num_experts=actual_num_experts, num_experts_per_tok=actual_num_experts_per_tok
         )
-        self.input_layernorm = GaiaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
-        self.pre_moe_layernorm = GaiaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.input_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.pre_moe_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
     def forward(
         self,
@@ -1303,7 +1303,7 @@ class GaiaDecoderLayer(nn.Module):
         return outputs
 
 
-GAIA_START_DOCSTRING = r"""
+JAMBA_START_DOCSTRING = r"""
     This model inherits from [`PreTrainedModel`]. Check the superclass documentation for the generic methods the
     library implements for all its model (such as downloading or saving, resizing the input embeddings, pruning heads
     etc.)
@@ -1313,7 +1313,7 @@ GAIA_START_DOCSTRING = r"""
     and behavior.
 
     Parameters:
-        config ([`GaiaConfig`]):
+        config ([`JambaConfig`]):
             Model configuration class with all the parameters of the model. Initializing with a config file does not
             load the weights associated with the model, only the configuration. Check out the
             [`~PreTrainedModel.from_pretrained`] method to load the model weights.
@@ -1321,15 +1321,15 @@ GAIA_START_DOCSTRING = r"""
 
 
 @add_start_docstrings(
-    "The bare Gaia Model outputting raw hidden-states without any specific head on top.",
-    GAIA_START_DOCSTRING,
+    "The bare Jamba Model outputting raw hidden-states without any specific head on top.",
+    JAMBA_START_DOCSTRING,
 )
-# Copied from transformers.models.mistral.modeling_mistral.MistralPreTrainedModel with Mistral->Gaia
-class GaiaPreTrainedModel(PreTrainedModel):
-    config_class = GaiaConfig
+# Copied from transformers.models.mistral.modeling_mistral.MistralPreTrainedModel with Mistral->Jamba
+class JambaPreTrainedModel(PreTrainedModel):
+    config_class = JambaConfig
     base_model_prefix = "model"
     supports_gradient_checkpointing = True
-    _no_split_modules = ["GaiaDecoderLayer"]
+    _no_split_modules = ["JambaDecoderLayer"]
     _skip_keys_device_placement = "past_key_values"
     _supports_flash_attn_2 = True
     _supports_sdpa = True
@@ -1347,7 +1347,7 @@ class GaiaPreTrainedModel(PreTrainedModel):
                 module.weight.data[module.padding_idx].zero_()
 
 
-GAIA_INPUTS_DOCSTRING = r"""
+JAMBA_INPUTS_DOCSTRING = r"""
     Args:
         input_ids (`torch.LongTensor` of shape `(batch_size, sequence_length)`):
             Indices of input sequence tokens in the vocabulary. Padding will be ignored by default should you provide
@@ -1417,19 +1417,19 @@ GAIA_INPUTS_DOCSTRING = r"""
 
 
 @add_start_docstrings(
-    "The bare Gaia Model outputting raw hidden-states without any specific head on top.",
-    GAIA_START_DOCSTRING,
+    "The bare Jamba Model outputting raw hidden-states without any specific head on top.",
+    JAMBA_START_DOCSTRING,
 )
-# Adapted from transformers.models.mistral.modeling_mistral.MistralModel with MISTRAL->GAIA, Mistral->Gaia
-class GaiaModel(GaiaPreTrainedModel):
+# Adapted from transformers.models.mistral.modeling_mistral.MistralModel with MISTRAL->JAMBA, Mistral->Jamba
+class JambaModel(JambaPreTrainedModel):
     """
-    Transformer decoder consisting of *config.num_hidden_layers* layers. Each layer is a [`GaiaDecoderLayer`]
+    Transformer decoder consisting of *config.num_hidden_layers* layers. Each layer is a [`JambaDecoderLayer`]
 
     Args:
-        config: GaiaConfig
+        config: JambaConfig
     """
 
-    def __init__(self, config: GaiaConfig):
+    def __init__(self, config: JambaConfig):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
         self.vocab_size = config.vocab_size
@@ -1444,7 +1444,7 @@ class GaiaModel(GaiaPreTrainedModel):
             is_expert = True if (i - self.config.expert_layer_offset) % self.config.expert_layer_period == 0 else False
 
             decoder_layers.append(
-                GaiaDecoderLayer(
+                JambaDecoderLayer(
                     config,
                     is_attn_layer=is_attn,
                     is_expert_layer=is_expert,
@@ -1459,7 +1459,7 @@ class GaiaModel(GaiaPreTrainedModel):
         self.layers = nn.ModuleList(decoder_layers)
 
         self._attn_implementation = config._attn_implementation
-        self.final_layernorm = GaiaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
+        self.final_layernorm = JambaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
 
         self.gradient_checkpointing = False
         # Initialize weights and apply final processing
@@ -1472,7 +1472,7 @@ class GaiaModel(GaiaPreTrainedModel):
         self.embed_tokens = value
 
     # Ignore copy
-    @add_start_docstrings_to_model_forward(GAIA_INPUTS_DOCSTRING)
+    @add_start_docstrings_to_model_forward(JAMBA_INPUTS_DOCSTRING)
     def forward(
         self,
         input_ids: torch.LongTensor = None,
@@ -1545,7 +1545,7 @@ class GaiaModel(GaiaPreTrainedModel):
             if is_padding_right:
                 raise ValueError(
                     "You are attempting to perform batched generation with padding_side='right'"
-                    " this may lead to unexpected behaviour for Flash Attention version of Gaia. Make sure to "
+                    " this may lead to unexpected behaviour for Flash Attention version of Jamba. Make sure to "
                     " call `tokenizer.padding_side  = 'left'` before tokenizing the input. "
                 )
 
@@ -1641,13 +1641,13 @@ class GaiaModel(GaiaPreTrainedModel):
         )
 
 
-# Copied from transformers.models.mixtral.modeling_mixtral.MixtralForCausalLM with MIXTRAL->GAIA, Mixtral->Gaia
-class GaiaForCausalLM(GaiaPreTrainedModel):
+# Copied from transformers.models.mixtral.modeling_mixtral.MixtralForCausalLM with MIXTRAL->JAMBA, Mixtral->Jamba
+class JambaForCausalLM(JambaPreTrainedModel):
     _tied_weights_keys = ["lm_head.weight"]
 
-    def __init__(self, config: GaiaConfig):
+    def __init__(self, config: JambaConfig):
         super().__init__(config)
-        self.model = GaiaModel(config)
+        self.model = JambaModel(config)
         self.vocab_size = config.vocab_size
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
         self.router_aux_loss_coef = config.router_aux_loss_coef
@@ -1674,7 +1674,7 @@ class GaiaForCausalLM(GaiaPreTrainedModel):
     def get_decoder(self):
         return self.model
 
-    @add_start_docstrings_to_model_forward(GAIA_INPUTS_DOCSTRING)
+    @add_start_docstrings_to_model_forward(JAMBA_INPUTS_DOCSTRING)
     @replace_return_docstrings(output_type=MoeCausalLMOutputWithPast, config_class=_CONFIG_FOR_DOC)
     # Ignore copy
     def forward(
@@ -1857,9 +1857,9 @@ class GaiaForCausalLM(GaiaPreTrainedModel):
 
 @add_start_docstrings(
     """
-    The Gaia Model with a sequence classification head on top (linear layer).
+    The Jamba Model with a sequence classification head on top (linear layer).
 
-    [`GaiaForSequenceClassification`] uses the last token in order to do the classification, as other causal models
+    [`JambaForSequenceClassification`] uses the last token in order to do the classification, as other causal models
     (e.g. GPT-2) do.
 
     Since it does classification on the last token, it requires to know the position of the last token. If a
@@ -1868,14 +1868,14 @@ class GaiaForCausalLM(GaiaPreTrainedModel):
     padding tokens when `inputs_embeds` are passed instead of `input_ids`, it does the same (take the last value in
     each row of the batch).
     """,
-    GAIA_START_DOCSTRING,
+    JAMBA_START_DOCSTRING,
 )
-# Copied from transformers.models.mixtral.modeling_mixtral.MixtralForSequenceClassification with Mixtral->Gaia, MIXTRAL->GAIA
-class GaiaForSequenceClassification(GaiaPreTrainedModel):
+# Copied from transformers.models.mixtral.modeling_mixtral.MixtralForSequenceClassification with Mixtral->Jamba, MIXTRAL->JAMBA
+class JambaForSequenceClassification(JambaPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.model = GaiaModel(config)
+        self.model = JambaModel(config)
         self.score = nn.Linear(config.hidden_size, self.num_labels, bias=False)
 
         # Initialize weights and apply final processing
@@ -1887,7 +1887,7 @@ class GaiaForSequenceClassification(GaiaPreTrainedModel):
     def set_input_embeddings(self, value):
         self.model.embed_tokens = value
 
-    @add_start_docstrings_to_model_forward(GAIA_INPUTS_DOCSTRING)
+    @add_start_docstrings_to_model_forward(JAMBA_INPUTS_DOCSTRING)
     def forward(
         self,
         input_ids: torch.LongTensor = None,
