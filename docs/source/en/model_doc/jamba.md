@@ -112,20 +112,6 @@ model = AutoModelForCausalLM.from_pretrained("ai21labs/Jamba-v0.1",
 [[autodoc]] JambaConfig
 
 
-## JambaTokenizer
-
-[[autodoc]] JambaTokenizer
-    - build_inputs_with_special_tokens
-    - get_special_tokens_mask
-    - create_token_type_ids_from_sequences
-    - save_vocabulary
-
-
-## JambaTokenizerFast
-
-[[autodoc]] JambaTokenizerFast
-
-
 ## JambaModel
 
 [[autodoc]] JambaModel
