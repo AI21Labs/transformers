@@ -99,7 +99,7 @@ JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST = [
 ]
 
 
-# Copied from transformers.models.mixtral.modeling_mixtral.load_balancing_loss_func
+# Adapted from transformers.models.mixtral.modeling_mixtral.load_balancing_loss_func
 def load_balancing_loss_func(
     gate_logits: torch.Tensor, num_experts: torch.Tensor = None, top_k=2, attention_mask: Optional[torch.Tensor] = None
 ) -> float:
@@ -1645,7 +1645,7 @@ class JambaModel(JambaPreTrainedModel):
         )
 
 
-# Copied from transformers.models.mixtral.modeling_mixtral.MixtralForCausalLM with MIXTRAL->JAMBA, Mixtral->Jamba
+# Adapted from transformers.models.mixtral.modeling_mixtral.MixtralForCausalLM with MIXTRAL->JAMBA, Mixtral->Jamba
 class JambaForCausalLM(JambaPreTrainedModel):
     _tied_weights_keys = ["lm_head.weight"]
 
