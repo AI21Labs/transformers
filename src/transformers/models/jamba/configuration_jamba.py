@@ -91,7 +91,7 @@ class JambaConfig(PretrainedConfig):
             Number of experts per Sparse MLP layer.
         expert_layer_period (`int`, *optional*, defaults to 2):
             Once in this many layers, we will have an expert layer
-        expert_layer_offset(`int`, *optional*, defaults to 1):
+        expert_layer_offset (`<fill_type>`, *optional*, defaults to 1):
             The first layer index that contains an expert mlp layer
         attn_layer_period (`int`, *optional*, defaults to 8):
             Once in this many layers, we will have a vanilla attention layer
@@ -113,7 +113,7 @@ class JambaConfig(PretrainedConfig):
             Flag indicating whether or not to use bias in the convolution layer of the mamba mixer block.
         mamba_proj_bias (`bool`, *optional*, defaults to `False`):
             Flag indicating whether or not to use bias in the input and output projections (["in_proj", "out_proj"]) of the mamba mixer block
-        mamba_inner_layernorms (`bool`, *optional*, defaults to `True`)
+        mamba_inner_layernorms (`bool`, *optional*, defaults to `True`):
             Flag indicating whether or not to apply layernorms to internal mamba activations
 
     """
@@ -124,6 +124,7 @@ class JambaConfig(PretrainedConfig):
     def __init__(
         self,
         vocab_size=65536,
+        tie_word_embeddings=False,
         hidden_size=4096,
         intermediate_size=14336,
         num_hidden_layers=32,
@@ -142,8 +143,8 @@ class JambaConfig(PretrainedConfig):
         attention_dropout=0.0,
         num_experts_per_tok=2,
         num_experts=16,
-        expert_layer_offset=1,
         expert_layer_period=2,
+        expert_layer_offset=1,
         attn_layer_period=8,
         attn_layer_offset=4,
         use_mamba_kernels=True,
@@ -157,6 +158,7 @@ class JambaConfig(PretrainedConfig):
         **kwargs,
     ):
         self.vocab_size = vocab_size
+        self.tie_word_embeddings = tie_word_embeddings
         self.hidden_size = hidden_size
         self.intermediate_size = intermediate_size
         self.num_hidden_layers = num_hidden_layers
