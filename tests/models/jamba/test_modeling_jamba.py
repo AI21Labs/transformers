@@ -307,6 +307,7 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
                             msg=f"Parameter {name} of model {model_class} seems not properly initialized",
                         )
 
+    @unittest.skip("Cumbersome and redundant for Jamba")
     def test_mismatched_shapes_have_properly_initialized_weights(self):
         r"""
         Overriding the test_mismatched_shapes_have_properly_initialized_weights test because A_log and D params of the
