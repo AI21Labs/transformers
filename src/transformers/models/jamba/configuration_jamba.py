@@ -81,7 +81,7 @@ class JambaConfig(PretrainedConfig):
         eos_token_id (`int`, *optional*, defaults to 2):
             The id of the "end-of-sequence" token.
         sliding_window (`int`, *optional*):
-            Sliding window attention window size. If not specified, will default to `4096`.
+            Sliding window attention window size. If not specified, will default to `None`.
         attention_dropout (`float`, *optional*, defaults to 0.0):
             The dropout ratio for the attention probabilities.
         num_experts_per_tok (`int`, *optional*, defaults to 2):
@@ -91,7 +91,7 @@ class JambaConfig(PretrainedConfig):
             Number of experts per Sparse MLP layer.
         expert_layer_period (`int`, *optional*, defaults to 2):
             Once in this many layers, we will have an expert layer
-        expert_layer_offset (`<fill_type>`, *optional*, defaults to 1):
+        expert_layer_offset (`int`, *optional*, defaults to 1):
             The first layer index that contains an expert mlp layer
         attn_layer_period (`int`, *optional*, defaults to 8):
             Once in this many layers, we will have a vanilla attention layer
