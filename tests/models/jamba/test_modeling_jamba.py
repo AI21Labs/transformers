@@ -158,8 +158,6 @@ class JambaModelTester:
         sequence_labels,
         token_labels,
         choice_labels,
-        encoder_hidden_states,
-        encoder_attention_mask,
     ):
         model = JambaForCausalLM(config=config)
         model.to(torch_device)
