@@ -148,31 +148,6 @@ class JambaModelTester:
         model.eval()
         result = model(input_ids, attention_mask=input_mask)
         result = model(input_ids)
-        result = model(input_ids)
-        self.parent.assertEqual(result.last_hidden_state.shape, (self.batch_size, self.seq_length, self.hidden_size))
-
-    def create_and_check_model_as_decoder(
-        self,
-        config,
-        input_ids,
-        input_mask,
-        sequence_labels,
-        token_labels,
-        choice_labels,
-    ):
-        config.add_cross_attention = True
-        model = JambaModel(config)
-        model.to(torch_device)
-        model.eval()
-        result = model(
-            input_ids,
-            attention_mask=input_mask,
-        )
-        result = model(
-            input_ids,
-            attention_mask=input_mask,
-        )
-        result = model(input_ids, attention_mask=input_mask)
         self.parent.assertEqual(result.last_hidden_state.shape, (self.batch_size, self.seq_length, self.hidden_size))
 
     def create_and_check_for_causal_lm(
@@ -190,6 +165,9 @@ class JambaModelTester:
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, labels=token_labels)
+        result = model(input_ids, attention_mask=input_mask)
+        result = model(input_ids, labels=token_labels)
+        result = model(input_ids)
         self.parent.assertEqual(result.logits.shape, (self.batch_size, self.seq_length, self.vocab_size))
 
     def create_and_check_decoder_model_past_large_inputs(
@@ -295,6 +273,14 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
         self.model_tester.create_and_check_model(*config_and_inputs)
 
+    def test_for_casual_lm(self):
+        config_and_inputs = self.model_tester.prepare_config_and_inputs()
+        self.model_tester.create_and_check_for_causal_lm(*config_and_inputs)
+
+    def test_for_sequence_classification(self):
+        config_and_inputs = self.model_tester.prepare_config_and_inputs()
+        self.model_tester.create_and_check_for_sequence_classification(*config_and_inputs)
+
     def test_model_various_embeddings(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
         for type in ["absolute", "relative_key", "relative_key_query"]:
@@ -304,36 +290,6 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
     def test_decoder_model_past_with_large_inputs(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs_for_decoder()
         self.model_tester.create_and_check_decoder_model_past_large_inputs(*config_and_inputs)
-
-    def test_for_sequence_classification(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs()
-        self.model_tester.create_and_check_for_sequence_classification(*config_and_inputs)
-
-    def test_model_as_decoder(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs_for_decoder()
-        self.model_tester.create_and_check_model_as_decoder(*config_and_inputs)
-
-    def test_model_as_decoder_with_default_input_mask(self):
-        # This regression test was failing with PyTorch < 1.3
-        (
-            config,
-            input_ids,
-            input_mask,
-            sequence_labels,
-            token_labels,
-            choice_labels,
-        ) = self.model_tester.prepare_config_and_inputs_for_decoder()
-
-        input_mask = None
-
-        self.model_tester.create_and_check_model_as_decoder(
-            config,
-            input_ids,
-            input_mask,
-            sequence_labels,
-            token_labels,
-            choice_labels,
-        )
 
     def test_initialization(self):
         r"""
