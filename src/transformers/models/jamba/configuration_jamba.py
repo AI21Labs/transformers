@@ -28,7 +28,7 @@ JAMBA_PRETRAINED_CONFIG_ARCHIVE_MAP = {
 
 class JambaConfig(PretrainedConfig):
     r"""
-    This is the configuration class to store the configuration of a [`JambaModel`]. It is used to instantiate an
+    This is the configuration class to store the configuration of a [`JambaModel`]. It is used to instantiate a
     Jamba model according to the specified arguments, defining the model architecture. Instantiating a configuration
     with the defaults will yield a similar configuration to that of the jamba-small architecture.
 
@@ -82,6 +82,9 @@ class JambaConfig(PretrainedConfig):
             The id of the "end-of-sequence" token.
         sliding_window (`int`, *optional*):
             Sliding window attention window size. If not specified, will default to `None`.
+        n_ctx (`int`, *optional*, defaults to 262144):
+            This value doesn't have any real effect. The maximum sequence length that this model is intended to be
+            used with. It can be used with longer sequences, but performance may degrade.
         attention_dropout (`float`, *optional*, defaults to 0.0):
             The dropout ratio for the attention probabilities.
         num_experts_per_tok (`int`, *optional*, defaults to 2):
@@ -140,6 +143,7 @@ class JambaConfig(PretrainedConfig):
         bos_token_id=1,
         eos_token_id=2,
         sliding_window=None,
+        n_ctx=262144,
         attention_dropout=0.0,
         num_experts_per_tok=2,
         num_experts=16,
@@ -164,6 +168,7 @@ class JambaConfig(PretrainedConfig):
         self.num_hidden_layers = num_hidden_layers
         self.num_attention_heads = num_attention_heads
         self.sliding_window = sliding_window
+        self.n_ctx = n_ctx
         self.attention_dropout = attention_dropout
 
         # for backward compatibility
