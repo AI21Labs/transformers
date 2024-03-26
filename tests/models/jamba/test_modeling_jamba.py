@@ -14,6 +14,9 @@
 # limitations under the License.
 """ Testing suite for the PyTorch Jamba model. """
 import unittest
+from typing import List, Tuple, Dict
+
+from parameterized import parameterized
 
 from transformers import JambaConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
@@ -318,71 +321,84 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
         """
         pass
 
-    def test_attention_outputs(self):
+    def test_model_outputs_equivalence(self):
         r"""
-        Overriding the test_attention_outputs test as the Jamba model outputs attention only for its attention layers
+        Overriding the test_model_outputs_equivalence test as the Jamba model outputs dummy attentions for its mamba layers
         """
         config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
-        config.return_dict = True
 
-        seq_len = getattr(self.model_tester, "seq_length", None)
-        encoder_seq_length = getattr(self.model_tester, "encoder_seq_length", seq_len)
-        encoder_key_length = getattr(self.model_tester, "key_length", encoder_seq_length)
+        def set_nan_or_meta_tensor_to_zero(t):
+            if t.is_meta:
+                return torch.zeros_like(t, device='cpu')
+            t[t != t] = 0
+            return t
+
+        def check_equivalence(model, tuple_inputs, dict_inputs, additional_kwargs={}):
+            with torch.no_grad():
+                tuple_output = model(**tuple_inputs, return_dict=False, **additional_kwargs)
+                dict_output = model(**dict_inputs, return_dict=True, **additional_kwargs).to_tuple()
+
+                def recursive_check(tuple_object, dict_object):
+                    if isinstance(tuple_object, (List, Tuple)):
+                        for tuple_iterable_value, dict_iterable_value in zip(tuple_object, dict_object):
+                            recursive_check(tuple_iterable_value, dict_iterable_value)
+                    elif isinstance(tuple_object, Dict):
+                        for tuple_iterable_value, dict_iterable_value in zip(
+                                tuple_object.values(), dict_object.values()
+                        ):
+                            recursive_check(tuple_iterable_value, dict_iterable_value)
+                    elif tuple_object is None:
+                        return
+                    else:
+                        self.assertTrue(
+                            torch.allclose(
+                                set_nan_or_meta_tensor_to_zero(tuple_object), set_nan_or_meta_tensor_to_zero(dict_object), atol=1e-5
+                            ),
+                            msg=(
+                                "Tuple and dict output are not equal. Difference:"
+                                f" {torch.max(torch.abs(tuple_object - dict_object))}. Tuple has `nan`:"
+                                f" {torch.isnan(tuple_object).any()} and `inf`: {torch.isinf(tuple_object)}. Dict has"
+                                f" `nan`: {torch.isnan(dict_object).any()} and `inf`: {torch.isinf(dict_object)}."
+                            ),
+                        )
+
+                recursive_check(tuple_output, dict_output)
 
         for model_class in self.all_model_classes:
-            inputs_dict["output_attentions"] = True
-            inputs_dict["output_hidden_states"] = False
-            config.return_dict = True
             model = model_class(config)
             model.to(torch_device)
             model.eval()
-            with torch.no_grad():
-                outputs = model(**self._prepare_for_class(inputs_dict, model_class))
-            attentions = outputs.encoder_attentions if config.is_encoder_decoder else outputs.attentions
-            self.assertEqual(len(attentions), self.model_tester.num_hidden_layers)
 
-            # check that output_attentions also work using config
-            del inputs_dict["output_attentions"]
-            config.output_attentions = True
-            model = model_class(config)
-            model.to(torch_device)
-            model.eval()
-            with torch.no_grad():
-                outputs = model(**self._prepare_for_class(inputs_dict, model_class))
-            attentions = outputs.encoder_attentions if config.is_encoder_decoder else outputs.attentions
-            self.assertEqual(len(attentions), self.model_tester.num_hidden_layers)
+            tuple_inputs = self._prepare_for_class(inputs_dict, model_class)
+            dict_inputs = self._prepare_for_class(inputs_dict, model_class)
+            check_equivalence(model, tuple_inputs, dict_inputs)
 
-            attn_layer_idx = model.config.attn_layer_offset
-            self.assertListEqual(
-                list(attentions[attn_layer_idx].shape[-3:]),
-                [self.model_tester.num_attention_heads, encoder_seq_length, encoder_key_length],
-            )
-            out_len = len(outputs)
+            tuple_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+            dict_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+            check_equivalence(model, tuple_inputs, dict_inputs)
 
-            # Check attention is always last and order is fine
-            inputs_dict["output_attentions"] = True
-            inputs_dict["output_hidden_states"] = True
-            model = model_class(config)
-            model.to(torch_device)
-            model.eval()
-            with torch.no_grad():
-                outputs = model(**self._prepare_for_class(inputs_dict, model_class))
+            tuple_inputs = self._prepare_for_class(inputs_dict, model_class)
+            dict_inputs = self._prepare_for_class(inputs_dict, model_class)
+            check_equivalence(model, tuple_inputs, dict_inputs, {"output_hidden_states": True})
 
-            if hasattr(self.model_tester, "num_hidden_states_types"):
-                added_hidden_states = self.model_tester.num_hidden_states_types
-            elif self.is_encoder_decoder:
-                added_hidden_states = 2
-            else:
-                added_hidden_states = 1
-            self.assertEqual(out_len + added_hidden_states, len(outputs))
+            tuple_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+            dict_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+            check_equivalence(model, tuple_inputs, dict_inputs, {"output_hidden_states": True})
 
-            self_attentions = outputs.encoder_attentions if config.is_encoder_decoder else outputs.attentions
+            if self.has_attentions:
+                tuple_inputs = self._prepare_for_class(inputs_dict, model_class)
+                dict_inputs = self._prepare_for_class(inputs_dict, model_class)
+                check_equivalence(model, tuple_inputs, dict_inputs, {"output_attentions": True})
 
-            self.assertEqual(len(self_attentions), self.model_tester.num_hidden_layers)
-            self.assertListEqual(
-                list(self_attentions[attn_layer_idx].shape[-3:]),
-                [self.model_tester.num_attention_heads, encoder_seq_length, encoder_key_length],
-            )
+                tuple_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+                dict_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+                check_equivalence(model, tuple_inputs, dict_inputs, {"output_attentions": True})
+
+                tuple_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+                dict_inputs = self._prepare_for_class(inputs_dict, model_class, return_labels=True)
+                check_equivalence(
+                    model, tuple_inputs, dict_inputs, {"output_hidden_states": True, "output_attentions": True}
+                )
 
     def test_retain_grad_hidden_states_attentions(self):
         r"""
