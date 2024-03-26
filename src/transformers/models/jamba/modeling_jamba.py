@@ -813,6 +813,7 @@ class JambaMambaMixer(nn.Module):
 
     def __init__(self, config: JambaConfig, layer_idx):
         super().__init__()
+        self.config = config
         self.layer_idx = layer_idx
         self.hidden_size = config.hidden_size
         self.ssm_state_size = config.mamba_d_state
@@ -1302,7 +1303,7 @@ class JambaMambaDecoderLayer(nn.Module):
         hidden_states: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
-        past_key_value: Optional[Tuple[torch.Tensor]] = None,
+        past_key_value: Optional[HybridMambaAttentionDynamicCache] = None,
         output_attentions: Optional[bool] = False,
         output_router_logits: Optional[bool] = False,
         use_cache: Optional[bool] = False,
@@ -1337,7 +1338,10 @@ class JambaMambaDecoderLayer(nn.Module):
             hidden_states=hidden_states,
             past_key_value=past_key_value,
         )
-        self_attn_weights = None
+        bs, seqlen, _ = hidden_states.shape
+        past_seqlen = self._get_past_seqlen(past_key_value, seqlen)
+        num_attention_heads = self.mamba.config.num_attention_heads
+        self_attn_weights = torch.empty(bs, num_attention_heads, seqlen, past_seqlen, device='meta')
 
         # residual connection after mamba
         hidden_states = residual + hidden_states
@@ -1360,6 +1364,17 @@ class JambaMambaDecoderLayer(nn.Module):
             outputs += (router_logits,)
 
         return outputs
+
+    def _get_past_seqlen(self, past_key_value, seqlen):
+        if past_key_value is None:
+            return seqlen
+        past_seqlen = past_key_value.get_seq_length()
+        if past_seqlen == 0:
+            return seqlen
+        if past_key_value.attention_layer_idx is None:
+            return seqlen
+        if self.mamba.layer_idx < past_key_value.attention_layer_idx:
+            return past_seqlen + 1
 
 
 JAMBA_START_DOCSTRING = r"""
@@ -1535,7 +1550,7 @@ class JambaModel(JambaPreTrainedModel):
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
-        past_key_values: Optional[List[torch.FloatTensor]] = None,
+        past_key_values: Optional[Union[List[torch.FloatTensor], HybridMambaAttentionDynamicCache]] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
