@@ -121,6 +121,7 @@ class JambaModelTester:
             initializer_range=self.initializer_range,
             use_mamba_kernels=False,
             num_experts=2,
+            calc_logits_for_entire_prompt=True,
         )
 
     def prepare_config_and_inputs_for_decoder(self):

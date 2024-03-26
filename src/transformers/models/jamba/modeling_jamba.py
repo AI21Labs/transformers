@@ -1899,7 +1899,7 @@ class JambaForCausalLM(JambaPreTrainedModel):
                 "use_cache": kwargs.get("use_cache"),
                 "attention_mask": attention_mask,
                 "output_router_logits": output_router_logits,
-                "calc_logits_for_entire_prompt": False,
+                "calc_logits_for_entire_prompt": self.config.calc_logits_for_entire_prompt,
             }
         )
         return model_inputs
