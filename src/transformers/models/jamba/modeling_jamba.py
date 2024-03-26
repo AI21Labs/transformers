@@ -1846,15 +1846,17 @@ class JambaForCausalLM(JambaPreTrainedModel):
     ):
         # Omit tokens covered by past_key_values
         if past_key_values is not None:
-            if not isinstance(past_key_values, Cache):
-                past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values)
-            elif not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
-                raise ValueError(
-                    "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
-                )
-            cache_length = past_key_values.get_seq_length()
-            past_length = past_key_values.seen_tokens
-            max_cache_length = past_key_values.get_max_length()
+            if isinstance(past_key_values, Cache):
+                if not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
+                    raise ValueError(
+                        "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
+                    )
+                cache_length = past_key_values.get_seq_length()
+                past_length = past_key_values.seen_tokens
+                max_cache_length = past_key_values.get_max_length()
+            else:
+                cache_length = past_length = past_key_values[self.model._attn_layer_index][0].shape[2]
+                max_cache_length = None
 
             # Keep only the unprocessed tokens:
             # 1 - If the length of the attention_mask exceeds the length of input_ids, then we are in a setting where
