@@ -725,8 +725,10 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
 
     It stores the Key and Value states as a list of tensors, one for each layer.
     The expected shape for each tensor for attention layers is `[batch_size, num_heads, seq_len, head_dim]`.
-    For the mamba layer, the `key_cache` represents the convolution state and has a shape of `[batch_size, d_inner, d_conv]`,
-    and the `value_cache` represents the ssm state and has a shape of `[batch_size, d_inner, d_state]`,
+    For the mamba layers, the `key_cache` represents the convolution state and has a shape of `[batch_size, d_inner, 1, d_conv]`,
+    and the `value_cache` represents the ssm state and has a shape of `[batch_size, d_inner, 1, d_state]`. Mamba cache
+    shape[2] is a dummy "seqlen" dimension to match the number of attention cache dimensions. For mamba, the cache
+    doesn't grow with seqlen so this dimension is always 1.
     """
 
     def __init__(self) -> None:
@@ -757,7 +759,7 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
             A tuple containing the updated key and value states.
         """
         # Update the number of seen tokens
-        if self.attention_layer_idx is None and len(key_states.shape) == 4:
+        if self.attention_layer_idx is None and self._is_attn_layer(key_states, value_states):
             self.attention_layer_idx = layer_idx
         if self.attention_layer_idx is not None and layer_idx == self.attention_layer_idx:
             self._seen_tokens += key_states.shape[-2]
@@ -767,12 +769,12 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
             self.key_cache.append(key_states)
             self.value_cache.append(value_states)
         else:
-            if len(self.key_cache[layer_idx].shape) == 4:
-                # attention layer
+            if self._is_attn_layer(self.key_cache[layer_idx], self.value_cache[layer_idx]):
+                # attention layer - append the new states to the existing cache on the seqlen dimension
                 self.key_cache[layer_idx] = torch.cat([self.key_cache[layer_idx], key_states], dim=-2)
                 self.value_cache[layer_idx] = torch.cat([self.value_cache[layer_idx], value_states], dim=-2)
             else:
-                # mamba layer
+                # mamba layer - replace the cache with the new states
                 self.key_cache[layer_idx] = key_states
                 self.value_cache[layer_idx] = value_states
 
@@ -783,7 +785,7 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
         if layer_idx is not None:
             if len(self.key_cache) <= layer_idx:
                 return 0
-            if len(self.key_cache[layer_idx].shape) > 3:
+            if self._is_attn_layer(self.key_cache[layer_idx], self.value_cache[layer_idx]):
                 return self.key_cache[layer_idx].shape[-2]
             else:
                 warnings.warn(
@@ -793,6 +795,10 @@ class HybridMambaAttentionDynamicCache(DynamicCache):
         if self.attention_layer_idx is None or len(self.key_cache) <= self.attention_layer_idx:
             return 0
         return self.key_cache[self.attention_layer_idx].shape[-2]
+
+    @staticmethod
+    def _is_attn_layer(key_states: torch.Tensor, value_states: torch.Tensor):
+        return key_states.shape[-1] == value_states.shape[-1]
 
 
 @dataclass
@@ -1073,8 +1079,9 @@ class JambaMambaMixer(nn.Module):
             )
             if len(past_key_value.key_cache) > self.layer_idx:
                 # we already have cache for this layer, use it
-                cache_params.conv_states[self.layer_idx] = past_key_value.key_cache[self.layer_idx]
-                cache_params.ssm_states[self.layer_idx] = past_key_value.value_cache[self.layer_idx]
+                # remove the dummy seqlen dim (dim=2)
+                cache_params.conv_states[self.layer_idx] = past_key_value.key_cache[self.layer_idx].squeeze(2)
+                cache_params.ssm_states[self.layer_idx] = past_key_value.value_cache[self.layer_idx].squeeze(2)
             else:
                 # we don't have cache for this layer, initialize it with zeros
                 batch_size = hidden_states.shape[0]
@@ -1099,7 +1106,10 @@ class JambaMambaMixer(nn.Module):
 
         if past_key_value is not None:
             past_key_value.update(
-                cache_params.conv_states[self.layer_idx], cache_params.ssm_states[self.layer_idx], self.layer_idx
+                # add dummy seqlen dim (dim=2) to match the number of dimensions of the attention cache
+                cache_params.conv_states[self.layer_idx].unsqueeze(2),
+                cache_params.ssm_states[self.layer_idx].unsqueeze(2),
+                self.layer_idx
             )
 
         return res, past_key_value
@@ -1460,8 +1470,10 @@ JAMBA_INPUTS_DOCSTRING = r"""
             Tuple of `tuple(torch.FloatTensor)` of length `config.num_hidden_layers`, with each tuple having 2 tensors
             corresponding to the cache of the layer.
             For attention layers, both tensors have shape of `(batch_size, num_kv_heads, sequence_length, embed_size_per_head)`
-            For mamba layers, the first tensor represents the convolution state and has shape of `(batch_size, d_inner, d_conv)`,
-            and the second tensor represents the ssm state and has shape of `(batch_size, d_inner, d_state)`.
+            For mamba layers, the first tensor represents the convolution state and has shape of `(batch_size, d_inner, 1, d_conv)`,
+            and the second tensor represents the ssm state and has shape of `(batch_size, d_inner, 1, d_state)`. Mamba
+            cache shape[2] is a dummy "seqlen" dimension to match the number of attention cache dimensions. For mamba,
+            the cache doesn't grow with seqlen so this dimension is always 1.
 
             Contains pre-computed hidden-states (key and values in the self-attention blocks and convolution and
             ssm states in the mamba blocks) that can be used (see `past_key_values` input) to speed up sequential decoding.
