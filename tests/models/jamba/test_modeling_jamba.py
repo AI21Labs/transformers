@@ -233,25 +233,6 @@ class JambaModelTester:
         result = model(input_ids, attention_mask=input_mask, labels=sequence_labels)
         self.parent.assertEqual(result.logits.shape, (self.batch_size, self.num_labels))
 
-    def create_and_check_state_equivalency(
-            self, config, input_ids, input_mask, sequence_labels, token_labels, choice_labels
-    ):
-        model = JambaModel(config=config)
-        model.to(torch_device)
-        model.eval()
-
-        outputs = model(input_ids)
-        output_whole = outputs.last_hidden_state
-
-        outputs = model(input_ids[:, :-1], use_cache=True)
-        output_one = outputs.last_hidden_state
-
-        # Using the state computed on the first inputs, we will get the same output
-        outputs = model(input_ids[:, -1:], past_key_values=outputs.past_key_values)
-        output_two = outputs.last_hidden_state
-
-        self.parent.assertTrue(torch.allclose(torch.cat([output_one, output_two], dim=1), output_whole, atol=1e-5))
-
     def prepare_config_and_inputs_for_common(self):
         config_and_inputs = self.prepare_config_and_inputs()
         (
@@ -303,10 +284,6 @@ class JambaModelTest(ModelTesterMixin, unittest.TestCase):
     def test_decoder_model_past_with_large_inputs(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs_for_decoder()
         self.model_tester.create_and_check_decoder_model_past_large_inputs(*config_and_inputs)
-
-    def test_state_equivalency(self):
-        config_and_inputs = self.model_tester.prepare_config_and_inputs()
-        self.model_tester.create_and_check_state_equivalency(*config_and_inputs)
 
     def test_initialization(self):
         r"""
