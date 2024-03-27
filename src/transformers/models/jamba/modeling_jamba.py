@@ -1572,14 +1572,18 @@ class JambaModel(JambaPreTrainedModel):
 
         if not any(isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers):
             raise ValueError("At least one layer in the decoder must be an attention layer")
-        # TODO: Add validation that mamba_d_state is different than mamba_d_conv
-        # TODO: Add validation that we have at least one mamba layer
         self._attn_layer_index = [isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers].index(
             True
         )
+
+        if not any(isinstance(layer, JambaMambaDecoderLayer) for layer in decoder_layers):
+            raise ValueError("At least one layer in the decoder must be a Mamba layer")
         self._mamba_layer_index = [isinstance(layer, JambaMambaDecoderLayer) for layer in decoder_layers].index(
             True
         )
+
+        if decoder_layers[self._mamba_layer_index].mamba.ssm_state_size == decoder_layers[self._mamba_layer_index].mamba.conv_kernel_size:
+            raise ValueError("Mamba state size and convolution size must be different")
 
         self.layers = nn.ModuleList(decoder_layers)
 
