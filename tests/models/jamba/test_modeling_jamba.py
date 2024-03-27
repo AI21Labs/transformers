@@ -61,6 +61,7 @@ class JambaModelTester:
         vocab_size=99,
         hidden_size=32,
         num_hidden_layers=5,
+        attn_layer_offset=1,
         num_attention_heads=4,
         num_key_value_heads=2,
         intermediate_size=37,
@@ -84,6 +85,7 @@ class JambaModelTester:
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
         self.num_hidden_layers = num_hidden_layers
+        self.attn_layer_offset = attn_layer_offset
         self.num_attention_heads = num_attention_heads
         self.num_key_value_heads = num_key_value_heads
         self.intermediate_size = intermediate_size
@@ -122,6 +124,7 @@ class JambaModelTester:
             vocab_size=self.vocab_size,
             hidden_size=self.hidden_size,
             num_hidden_layers=self.num_hidden_layers,
+            attn_layer_offset=self.attn_layer_offset,
             num_attention_heads=self.num_attention_heads,
             num_key_value_heads=self.num_key_value_heads,
             intermediate_size=self.intermediate_size,
