@@ -128,8 +128,9 @@ def load_balancing_loss_func(
 
     if isinstance(gate_logits, tuple):
         compute_device = gate_logits[0].device
-        concatenated_gate_logits = torch.cat([layer_gate.to(compute_device) for layer_gate in gate_logits
-                                              if layer_gate.shape[1] > 1], dim=0)
+        concatenated_gate_logits = torch.cat(
+            [layer_gate.to(compute_device) for layer_gate in gate_logits if layer_gate.shape[1] > 1], dim=0
+        )
 
     routing_weights = torch.nn.functional.softmax(concatenated_gate_logits, dim=-1)
 
@@ -1109,7 +1110,7 @@ class JambaMambaMixer(nn.Module):
                 # add dummy seqlen dim (dim=2) to match the number of dimensions of the attention cache
                 cache_params.conv_states[self.layer_idx].unsqueeze(2),
                 cache_params.ssm_states[self.layer_idx].unsqueeze(2),
-                self.layer_idx
+                self.layer_idx,
             )
 
         return res, past_key_value
@@ -1351,7 +1352,7 @@ class JambaMambaDecoderLayer(nn.Module):
         bs, seqlen, _ = hidden_states.shape
         past_seqlen = self._get_past_seqlen(past_key_value, seqlen)
         num_attention_heads = self.mamba.config.num_attention_heads
-        self_attn_weights = torch.empty(bs, num_attention_heads, seqlen, past_seqlen, device='meta')
+        self_attn_weights = torch.empty(bs, num_attention_heads, seqlen, past_seqlen, device="meta")
 
         # residual connection after mamba
         hidden_states = residual + hidden_states
@@ -1432,7 +1433,7 @@ class JambaPreTrainedModel(PreTrainedModel):
 
     @staticmethod
     def _convert_to_standard_cache(
-            past_key_value: Tuple[Tuple[torch.Tensor, torch.Tensor]], batch_size: int
+        past_key_value: Tuple[Tuple[torch.Tensor, torch.Tensor]], batch_size: int
     ) -> Tuple[Tuple[torch.Tensor, torch.Tensor]]:
         """
         Standardizes the format of the cache so as to match most implementations, i.e. have the seqlen as the third dim
@@ -1440,8 +1441,8 @@ class JambaPreTrainedModel(PreTrainedModel):
         """
         attn_layer_index = [k.shape == v.shape for k, v in past_key_value].index(True)
         seqlen = past_key_value[attn_layer_index][0].shape[2]
-        standard_past_key_value = tuple()
-        for k,v in past_key_value:
+        standard_past_key_value = ()
+        for k, v in past_key_value:
             if k.shape != v.shape:
                 # mamba layer
                 # expand doesn't use more memory, so it's fine to do it here
@@ -1452,13 +1453,13 @@ class JambaPreTrainedModel(PreTrainedModel):
 
     @staticmethod
     def _convert_to_jamba_cache(
-            past_key_value: Tuple[Tuple[torch.Tensor, torch.Tensor]],
+        past_key_value: Tuple[Tuple[torch.Tensor, torch.Tensor]],
     ) -> Tuple[Tuple[torch.Tensor, torch.Tensor]]:
         """
         Converts the cache to the format expected by Jamba, i.e. dummy seqlen dimesion with size 1 for mamba layers
         """
-        jamba_past_key_value = tuple()
-        for k,v in past_key_value:
+        jamba_past_key_value = ()
+        for k, v in past_key_value:
             if k.shape != v.shape:
                 # mamba layer
                 jamba_past_key_value += ((k[:, :, :1, :], v[:, :, :1, :]),)
@@ -1578,11 +1579,12 @@ class JambaModel(JambaPreTrainedModel):
 
         if not any(isinstance(layer, JambaMambaDecoderLayer) for layer in decoder_layers):
             raise ValueError("At least one layer in the decoder must be a Mamba layer")
-        self._mamba_layer_index = [isinstance(layer, JambaMambaDecoderLayer) for layer in decoder_layers].index(
-            True
-        )
+        self._mamba_layer_index = [isinstance(layer, JambaMambaDecoderLayer) for layer in decoder_layers].index(True)
 
-        if decoder_layers[self._mamba_layer_index].mamba.ssm_state_size == decoder_layers[self._mamba_layer_index].mamba.conv_kernel_size:
+        if (
+            decoder_layers[self._mamba_layer_index].mamba.ssm_state_size
+            == decoder_layers[self._mamba_layer_index].mamba.conv_kernel_size
+        ):
             raise ValueError("Mamba state size and convolution size must be different")
 
         self.layers = nn.ModuleList(decoder_layers)
@@ -1925,7 +1927,9 @@ class JambaForCausalLM(JambaPreTrainedModel):
 
             if isinstance(past_key_values, Cache):
                 if not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
-                    past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values.to_legacy_cache())
+                    past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(
+                        past_key_values.to_legacy_cache()
+                    )
                 cache_length = past_key_values.get_seq_length()
                 past_length = past_key_values.seen_tokens
                 max_cache_length = past_key_values.get_max_length()

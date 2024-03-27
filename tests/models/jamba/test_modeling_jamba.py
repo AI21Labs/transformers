@@ -14,15 +14,16 @@
 # limitations under the License.
 """ Testing suite for the PyTorch Jamba model. """
 import unittest
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
 from transformers import JambaConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
-from ...generation.test_utils import GenerationTesterMixin
 
+from ...generation.test_utils import GenerationTesterMixin
 from ...test_configuration_common import ConfigTester
 from ...test_modeling_common import ModelTesterMixin, _config_zero_init, ids_tensor, random_attention_mask
 from ...test_pipeline_mixin import PipelineTesterMixin
+
 
 if is_torch_available():
     import torch
@@ -33,8 +34,10 @@ if is_torch_available():
         JambaModel,
     )
     from transformers.models.jamba.modeling_jamba import (
-        JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST, JambaAttentionDecoderLayer, JambaMambaDecoderLayer,
-)
+        JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
+        JambaAttentionDecoderLayer,
+        JambaMambaDecoderLayer,
+    )
 
 
 class JambaModelTester:
@@ -312,14 +315,16 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         model.eval()
         result = model(input_ids, attention_mask=attention_mask)
         bs, seqlen = input_ids.shape
-        self.assertEqual(result.router_logits[config.expert_layer_offset].shape, (bs*seqlen, config.num_experts))
+        self.assertEqual(result.router_logits[config.expert_layer_offset].shape, (bs * seqlen, config.num_experts))
         torch.testing.assert_close(result.aux_loss.cpu(), torch.tensor(2, dtype=torch.float32), rtol=1e-2, atol=1e-2)
 
         # First, we make sure that adding padding tokens doesn't change the loss
         # loss(input_ids, attention_mask=None) == loss(input_ids + padding, attention_mask=attention_mask_with_padding)
         pad_length = 1000
         # Add padding tokens to input_ids
-        padding_block = config.pad_token_id * torch.ones(input_ids.shape[0], pad_length, dtype=torch.int32).to(torch_device)
+        padding_block = config.pad_token_id * torch.ones(input_ids.shape[0], pad_length, dtype=torch.int32).to(
+            torch_device
+        )
         padded_input_ids = torch.cat((padding_block, input_ids), dim=1)  # this is to simulate padding to the left
         padded_attention_mask = padded_input_ids.ne(config.pad_token_id).to(torch_device)
 
@@ -389,7 +394,7 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
 
         def set_nan_or_meta_tensor_to_zero(t):
             if t.is_meta:
-                return torch.zeros_like(t, device='cpu')
+                return torch.zeros_like(t, device="cpu")
             t[t != t] = 0
             return t
 
@@ -404,7 +409,7 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
                             recursive_check(tuple_iterable_value, dict_iterable_value)
                     elif isinstance(tuple_object, Dict):
                         for tuple_iterable_value, dict_iterable_value in zip(
-                                tuple_object.values(), dict_object.values()
+                            tuple_object.values(), dict_object.values()
                         ):
                             recursive_check(tuple_iterable_value, dict_iterable_value)
                     elif tuple_object is None:
@@ -412,7 +417,9 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
                     else:
                         self.assertTrue(
                             torch.allclose(
-                                set_nan_or_meta_tensor_to_zero(tuple_object), set_nan_or_meta_tensor_to_zero(dict_object), atol=1e-5
+                                set_nan_or_meta_tensor_to_zero(tuple_object),
+                                set_nan_or_meta_tensor_to_zero(dict_object),
+                                atol=1e-5,
                             ),
                             msg=(
                                 "Tuple and dict output are not equal. Difference:"
@@ -518,9 +525,9 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
                 self.skipTest("This model doesn't return `past_key_values`")
 
             num_hidden_layers = (
-                    getattr(config, "decoder_layers", None)
-                    or getattr(config, "num_decoder_layers", None)
-                    or config.num_hidden_layers
+                getattr(config, "decoder_layers", None)
+                or getattr(config, "num_decoder_layers", None)
+                or config.num_hidden_layers
             )
             num_attention_heads = getattr(config, "decoder_attention_heads", config.num_attention_heads)
             num_kv_heads = config.num_key_value_heads
@@ -539,12 +546,8 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
             for i in range(num_hidden_layers):
                 self.assertEqual(len(past_kv[0]), 2)  # K V for the decoder = 2
                 if isinstance(model.model.layers[i], JambaAttentionDecoderLayer):
-                    self.assertEqual(
-                        past_kv[i][0].shape, (batch_size, num_kv_heads, seq_length, per_head_embed_dim)
-                    )
-                    self.assertEqual(
-                        past_kv[i][1].shape, (batch_size, num_kv_heads, seq_length, per_head_embed_dim)
-                    )
+                    self.assertEqual(past_kv[i][0].shape, (batch_size, num_kv_heads, seq_length, per_head_embed_dim))
+                    self.assertEqual(past_kv[i][1].shape, (batch_size, num_kv_heads, seq_length, per_head_embed_dim))
                 elif isinstance(model.model.layers[i], JambaMambaDecoderLayer):
                     self.assertEqual(past_kv[i][0].shape, (batch_size, mamba_d_inner, 1, mamba_d_conv))
                     self.assertEqual(past_kv[i][1].shape, (batch_size, mamba_d_inner, 1, mamba_d_state))
@@ -560,7 +563,7 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         self.assertListEqual(
             [isinstance(iter_past_key_values, tuple) for iter_past_key_values in past_key_values],
             [True] * len(past_key_values),
-            )
+        )
 
         # (batch, head, seq_length, head_features)
         expected_attn_shape = (
@@ -572,14 +575,14 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         # (batch, mamba_inner, 1, d_conv)
         expected_mamba_conv_shape = (
             batch_size * num_beam_groups,
-            config.hidden_size*config.mamba_expand,
+            config.hidden_size * config.mamba_expand,
             1,
             config.mamba_d_conv,
         )
         # (batch, mamba_inner, 1, d_state)
         expected_mamba_state_shape = (
             batch_size * num_beam_groups,
-            config.hidden_size*config.mamba_expand,
+            config.hidden_size * config.mamba_expand,
             1,
             config.mamba_d_state,
         )
@@ -597,12 +600,18 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         # check shape key, value
         self.assertListEqual(
             [layer_past_key_values[0].shape for layer_past_key_values in past_key_values],
-            [expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_conv_shape for i in range(len(past_key_values))],
-            )
+            [
+                expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_conv_shape
+                for i in range(len(past_key_values))
+            ],
+        )
         self.assertListEqual(
             [layer_past_key_values[1].shape for layer_past_key_values in past_key_values],
-            [expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_state_shape for i in range(len(past_key_values))],
-            )
+            [
+                expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_state_shape
+                for i in range(len(past_key_values))
+            ],
+        )
 
     @slow
     def test_model_from_pretrained(self):
