@@ -1386,6 +1386,7 @@ class JambaMambaDecoderLayer(nn.Module):
             return seqlen
         if self.mamba.layer_idx < past_key_value.attention_layer_idx:
             return past_seqlen + 1
+        return past_seqlen
 
 
 JAMBA_START_DOCSTRING = r"""
