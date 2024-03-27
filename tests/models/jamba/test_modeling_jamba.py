@@ -16,8 +16,6 @@
 import unittest
 from typing import List, Tuple, Dict
 
-from parameterized import parameterized
-
 from transformers import JambaConfig, is_torch_available
 from transformers.testing_utils import require_torch, slow, torch_device
 from ...generation.test_utils import GenerationTesterMixin
@@ -480,11 +478,6 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
 
         # This is to mimic torch.testing.assert_not_close
         self.assertNotAlmostEqual(include_padding_result.aux_loss.item(), result.aux_loss.item())
-
-    @parameterized.expand([(1, False), (1, True), (4, False)])
-    def test_new_cache_format(self, num_beams, do_sample):
-        # TODO: Override. This should fail
-        pass
 
     def test_past_key_values_format(self):
         # TODO: override. We have a different kv cache format (another option is to align format - at least with shapes)

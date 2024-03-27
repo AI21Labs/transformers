@@ -1875,9 +1875,7 @@ class JambaForCausalLM(JambaPreTrainedModel):
         if past_key_values is not None:
             if isinstance(past_key_values, Cache):
                 if not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
-                    raise ValueError(
-                        "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
-                    )
+                    past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values.to_legacy_cache())
                 cache_length = past_key_values.get_seq_length()
                 past_length = past_key_values.seen_tokens
                 max_cache_length = past_key_values.get_max_length()
