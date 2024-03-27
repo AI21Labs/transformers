@@ -34,7 +34,6 @@ if is_torch_available():
         JambaModel,
     )
     from transformers.models.jamba.modeling_jamba import (
-        JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
         JambaAttentionDecoderLayer,
         JambaMambaDecoderLayer,
     )
@@ -613,19 +612,13 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
             ],
         )
 
-    @slow
-    def test_model_from_pretrained(self):
-        for model_name in JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = JambaModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
-
 
 @require_torch
-@unittest.skip("Need to rewrite")
+@unittest.skip("Update once we have a tiny Jamba model")
 class JambaModelIntegrationTest(unittest.TestCase):
     @slow
     def test_inference_masked_lm(self):
-        model = JambaForCausalLM.from_pretrained("ai21labs/jamba-small")
+        model = JambaForCausalLM.from_pretrained("...")
         input_ids = torch.tensor([[0, 1, 2, 3, 4, 5]])
         output = model(input_ids)[0]
 
