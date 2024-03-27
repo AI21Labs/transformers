@@ -33,8 +33,8 @@ if is_torch_available():
         JambaModel,
     )
     from transformers.models.jamba.modeling_jamba import (
-        JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST,
-    )
+        JAMBA_PRETRAINED_MODEL_ARCHIVE_LIST, JambaAttentionDecoderLayer, JambaMambaDecoderLayer,
+)
 
 
 class JambaModelTester:
@@ -410,7 +410,8 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
 
     def test_retain_grad_hidden_states_attentions(self):
         r"""
-        Overriding the test_attention_outputs test as the Jamba model outputs attention only for its attention layers
+        Overriding the test_attention_outputs test as the Jamba model outputs dummy attention only for its mamba layers
+        Actual attentions are given only for attention layers
         """
         config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
         config.output_hidden_states = True
@@ -480,8 +481,61 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         self.assertNotAlmostEqual(include_padding_result.aux_loss.item(), result.aux_loss.item())
 
     def test_past_key_values_format(self):
-        # TODO: override. We have a different kv cache format (another option is to align format - at least with shapes)
-        pass
+        r"""
+        Overriding the test_past_key_values_format test as the Jamba model has a non-standard KV cache format: (1) it
+        is a GQA model (2) it has mamba layers with different cache shapes
+        """
+        for model_class in self.all_generative_model_classes:
+            config, inputs = self.model_tester.prepare_config_and_inputs_for_common()
+
+            # If it doesn't support cache, pass the test
+            if not hasattr(config, "use_cache"):
+                self.skipTest("This model doesn't support caching")
+
+            model = model_class(config).to(torch_device)
+            if "use_cache" not in inputs:
+                inputs["use_cache"] = True
+            outputs = model(**inputs)
+
+            # If "past_key_values" is not returned, pass the test (e.g. RWKV uses a different cache name and format)
+            if "past_key_values" not in outputs:
+                self.skipTest("This model doesn't return `past_key_values`")
+
+            num_hidden_layers = (
+                    getattr(config, "decoder_layers", None)
+                    or getattr(config, "num_decoder_layers", None)
+                    or config.num_hidden_layers
+            )
+            num_attention_heads = getattr(config, "decoder_attention_heads", config.num_attention_heads)
+            num_kv_heads = config.num_key_value_heads
+            embed_dim = getattr(config, "d_model", config.hidden_size)
+            per_head_embed_dim = embed_dim // num_attention_heads
+
+            mamba_d_inner = embed_dim * config.mamba_expand
+            mamba_d_state = config.mamba_d_state
+            mamba_d_conv = config.mamba_d_conv
+
+            past_kv = outputs["past_key_values"]
+            self.assertEqual(len(past_kv), num_hidden_layers)
+
+            # Decoder-only checks
+            batch_size, seq_length = inputs["input_ids"].shape
+            for i in range(num_hidden_layers):
+                self.assertEqual(len(past_kv[0]), 2)  # K V for the decoder = 2
+                if isinstance(model.model.layers[i], JambaAttentionDecoderLayer):
+                    self.assertEqual(
+                        past_kv[i][0].shape, (batch_size, num_kv_heads, seq_length, per_head_embed_dim)
+                    )
+                    self.assertEqual(
+                        past_kv[i][1].shape, (batch_size, num_kv_heads, seq_length, per_head_embed_dim)
+                    )
+                elif isinstance(model.model.layers[i], JambaMambaDecoderLayer):
+                    self.assertEqual(past_kv[i][0].shape, (batch_size, mamba_d_inner, 1, mamba_d_conv))
+                    self.assertEqual(past_kv[i][1].shape, (batch_size, mamba_d_inner, 1, mamba_d_state))
+                else:
+                    self.fail(f"Unexpected layer type {model.model.layers[i]}")
+
+    #TODO: override _check_past_key_values_for_generate from GenerationTesterMixin because we have a different kv cache format
 
     # TODO: Add simple generation test with calc_logits_for_entire_prompt=False
 
