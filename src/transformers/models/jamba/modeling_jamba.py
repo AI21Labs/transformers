@@ -1430,6 +1430,42 @@ class JambaPreTrainedModel(PreTrainedModel):
             if module.padding_idx is not None:
                 module.weight.data[module.padding_idx].zero_()
 
+    @staticmethod
+    def _convert_to_standard_cache(
+            past_key_value: Tuple[Tuple[torch.Tensor, torch.Tensor]], batch_size: int
+    ) -> Tuple[Tuple[torch.Tensor, torch.Tensor]]:
+        """
+        Standardizes the format of the cache so as to match most implementations, i.e. have the seqlen as the third dim
+        also for mamba layers
+        """
+        attn_layer_index = [k.shape == v.shape for k, v in past_key_value].index(True)
+        seqlen = past_key_value[attn_layer_index][0].shape[2]
+        standard_past_key_value = tuple()
+        for k,v in past_key_value:
+            if k.shape != v.shape:
+                # mamba layer
+                # expand doesn't use more memory, so it's fine to do it here
+                standard_past_key_value += ((k.expand(-1, -1, seqlen, -1), v.expand(-1, -1, seqlen, -1)),)
+            else:
+                standard_past_key_value += ((k, v),)
+        return standard_past_key_value
+
+    @staticmethod
+    def _convert_to_jamba_cache(
+            past_key_value: Tuple[Tuple[torch.Tensor, torch.Tensor]],
+    ) -> Tuple[Tuple[torch.Tensor, torch.Tensor]]:
+        """
+        Converts the cache to the format expected by Jamba, i.e. dummy seqlen dimesion with size 1 for mamba layers
+        """
+        jamba_past_key_value = tuple()
+        for k,v in past_key_value:
+            if k.shape != v.shape:
+                # mamba layer
+                jamba_past_key_value += ((k[:, :, :1, :], v[:, :, :1, :]),)
+            else:
+                jamba_past_key_value += ((k, v),)
+        return jamba_past_key_value
+
 
 JAMBA_INPUTS_DOCSTRING = r"""
     Args:
@@ -1536,7 +1572,12 @@ class JambaModel(JambaPreTrainedModel):
 
         if not any(isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers):
             raise ValueError("At least one layer in the decoder must be an attention layer")
+        # TODO: Add validation that mamba_d_state is different than mamba_d_conv
+        # TODO: Add validation that we have at least one mamba layer
         self._attn_layer_index = [isinstance(layer, JambaAttentionDecoderLayer) for layer in decoder_layers].index(
+            True
+        )
+        self._mamba_layer_index = [isinstance(layer, JambaMambaDecoderLayer) for layer in decoder_layers].index(
             True
         )
 
@@ -1873,6 +1914,11 @@ class JambaForCausalLM(JambaPreTrainedModel):
     ):
         # Omit tokens covered by past_key_values
         if past_key_values is not None:
+            # the cache may be in the stardard format (e.g. in contrastive search), convert to Jamba's format if needed
+            if isinstance(past_key_values, Tuple):
+                if past_key_values[self.model._mamba_layer_index][0].shape[2] > 1:
+                    past_key_values = self._convert_to_jamba_cache(past_key_values)
+
             if isinstance(past_key_values, Cache):
                 if not isinstance(past_key_values, HybridMambaAttentionDynamicCache):
                     past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values.to_legacy_cache())

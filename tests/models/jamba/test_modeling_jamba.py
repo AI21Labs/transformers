@@ -535,7 +535,58 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
                 else:
                     self.fail(f"Unexpected layer type {model.model.layers[i]}")
 
-    #TODO: override _check_past_key_values_for_generate from GenerationTesterMixin because we have a different kv cache format
+    def _check_past_key_values_for_generate(self, batch_size, past_key_values, seq_length, config, num_beam_groups=1):
+        r"""
+        Overriding the _check_past_key_values_for_generate function test as the Jamba model has a non-standard KV cache
+        format - it has mamba layers with different cache shapes
+        """
+        self.assertIsInstance(past_key_values, tuple)
+        self.assertListEqual(
+            [isinstance(iter_past_key_values, tuple) for iter_past_key_values in past_key_values],
+            [True] * len(past_key_values),
+            )
+
+        # (batch, head, seq_length, head_features)
+        expected_attn_shape = (
+            batch_size * num_beam_groups,
+            config.num_key_value_heads if hasattr(config, "num_key_value_heads") else config.num_attention_heads,
+            seq_length,
+            config.hidden_size // config.num_attention_heads,
+        )
+        # (batch, mamba_inner, 1, d_conv)
+        expected_mamba_conv_shape = (
+            batch_size * num_beam_groups,
+            config.hidden_size*config.mamba_expand,
+            1,
+            config.mamba_d_conv,
+        )
+        # (batch, mamba_inner, 1, d_state)
+        expected_mamba_state_shape = (
+            batch_size * num_beam_groups,
+            config.hidden_size*config.mamba_expand,
+            1,
+            config.mamba_d_state,
+        )
+
+        def _is_attn_layer(idx, config):
+            if (idx - config.attn_layer_offset) % config.attn_layer_period == 0:
+                return True
+            return False
+
+        mamba_layer_idx = [_is_attn_layer(i, config) for i in range(len(past_key_values))].index(False)
+        if past_key_values[mamba_layer_idx][0].shape[2] > 1:
+            # special treatment for contrastive decoding which uses standard cache format also for mamba layers
+            past_key_values = JambaModel._convert_to_jamba_cache(past_key_values)
+
+        # check shape key, value
+        self.assertListEqual(
+            [layer_past_key_values[0].shape for layer_past_key_values in past_key_values],
+            [expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_conv_shape for i in range(len(past_key_values))],
+            )
+        self.assertListEqual(
+            [layer_past_key_values[1].shape for layer_past_key_values in past_key_values],
+            [expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_state_shape for i in range(len(past_key_values))],
+            )
 
     # TODO: Add simple generation test with calc_logits_for_entire_prompt=False
 
