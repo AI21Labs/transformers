@@ -297,6 +297,58 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         config_and_inputs = self.model_tester.prepare_config_and_inputs_for_decoder()
         self.model_tester.create_and_check_decoder_model_past_large_inputs(*config_and_inputs)
 
+    def test_load_balancing_loss(self):
+        r"""
+        Let's make sure we can actually compute the loss and do a backward on it.
+        """
+        config, input_dict = self.model_tester.prepare_config_and_inputs_for_common()
+        config.num_labels = 3
+        config.num_experts = 16
+        config.output_router_logits = True
+        input_ids = input_dict["input_ids"]
+        attention_mask = input_ids.ne(config.pad_token_id).to(torch_device)
+        model = JambaForCausalLM(config)
+        model.to(torch_device)
+        model.eval()
+        result = model(input_ids, attention_mask=attention_mask)
+        bs, seqlen = input_ids.shape
+        self.assertEqual(result.router_logits[config.expert_layer_offset].shape, (bs*seqlen, config.num_experts))
+        torch.testing.assert_close(result.aux_loss.cpu(), torch.tensor(2, dtype=torch.float32), rtol=1e-2, atol=1e-2)
+
+        # First, we make sure that adding padding tokens doesn't change the loss
+        # loss(input_ids, attention_mask=None) == loss(input_ids + padding, attention_mask=attention_mask_with_padding)
+        pad_length = 1000
+        # Add padding tokens to input_ids
+        padding_block = config.pad_token_id * torch.ones(input_ids.shape[0], pad_length, dtype=torch.int32).to(torch_device)
+        padded_input_ids = torch.cat((padding_block, input_ids), dim=1)  # this is to simulate padding to the left
+        padded_attention_mask = padded_input_ids.ne(config.pad_token_id).to(torch_device)
+
+        padded_result = model(padded_input_ids, attention_mask=padded_attention_mask)
+        torch.testing.assert_close(result.aux_loss.cpu(), padded_result.aux_loss.cpu(), rtol=1e-4, atol=1e-4)
+
+        # We make sure that the loss of including padding tokens != the loss without padding tokens
+        # if attention_mask=None --> we don't exclude padding tokens
+        include_padding_result = model(padded_input_ids, attention_mask=None)
+
+        # This is to mimic torch.testing.assert_not_close
+        self.assertNotAlmostEqual(include_padding_result.aux_loss.item(), result.aux_loss.item())
+
+    def test_greedy_generate_with_logits_only_for_last_prompt_token(self):
+        r"""
+        Adapted from test_greedy_generate of GenerationTesterMixin, just changing config.calc_logits_for_entire_prompt
+        to `False`
+        """
+        for model_class in self.all_generative_model_classes:
+            config, input_ids, attention_mask, max_length = self._get_input_ids_and_config()
+            config.calc_logits_for_entire_prompt = False
+
+            model = model_class(config).to(torch_device).eval()
+            output_generate = self._greedy_generate(
+                model=model, input_ids=input_ids, attention_mask=attention_mask, max_length=max_length
+            )
+
+            self.assertTrue(output_generate.shape[-1] == max_length)
+
     def test_initialization(self):
         r"""
         Overriding the test_initialization test as the A_log and D params of the Mamba block are initialized differently
@@ -444,42 +496,6 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
         if self.has_attentions:
             self.assertIsNotNone(attentions.grad)
 
-    def test_load_balancing_loss(self):
-        r"""
-        Let's make sure we can actually compute the loss and do a backward on it.
-        """
-        config, input_dict = self.model_tester.prepare_config_and_inputs_for_common()
-        config.num_labels = 3
-        config.num_experts = 16
-        config.output_router_logits = True
-        input_ids = input_dict["input_ids"]
-        attention_mask = input_ids.ne(config.pad_token_id).to(torch_device)
-        model = JambaForCausalLM(config)
-        model.to(torch_device)
-        model.eval()
-        result = model(input_ids, attention_mask=attention_mask)
-        bs, seqlen = input_ids.shape
-        self.assertEqual(result.router_logits[config.expert_layer_offset].shape, (bs*seqlen, config.num_experts))
-        torch.testing.assert_close(result.aux_loss.cpu(), torch.tensor(2, dtype=torch.float32), rtol=1e-2, atol=1e-2)
-
-        # First, we make sure that adding padding tokens doesn't change the loss
-        # loss(input_ids, attention_mask=None) == loss(input_ids + padding, attention_mask=attention_mask_with_padding)
-        pad_length = 1000
-        # Add padding tokens to input_ids
-        padding_block = config.pad_token_id * torch.ones(input_ids.shape[0], pad_length, dtype=torch.int32).to(torch_device)
-        padded_input_ids = torch.cat((padding_block, input_ids), dim=1)  # this is to simulate padding to the left
-        padded_attention_mask = padded_input_ids.ne(config.pad_token_id).to(torch_device)
-
-        padded_result = model(padded_input_ids, attention_mask=padded_attention_mask)
-        torch.testing.assert_close(result.aux_loss.cpu(), padded_result.aux_loss.cpu(), rtol=1e-4, atol=1e-4)
-
-        # We make sure that the loss of including padding tokens != the loss without padding tokens
-        # if attention_mask=None --> we don't exclude padding tokens
-        include_padding_result = model(padded_input_ids, attention_mask=None)
-
-        # This is to mimic torch.testing.assert_not_close
-        self.assertNotAlmostEqual(include_padding_result.aux_loss.item(), result.aux_loss.item())
-
     def test_past_key_values_format(self):
         r"""
         Overriding the test_past_key_values_format test as the Jamba model has a non-standard KV cache format: (1) it
@@ -587,8 +603,6 @@ class JambaModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixi
             [layer_past_key_values[1].shape for layer_past_key_values in past_key_values],
             [expected_attn_shape if _is_attn_layer(i, config) else expected_mamba_state_shape for i in range(len(past_key_values))],
             )
-
-    # TODO: Add simple generation test with calc_logits_for_entire_prompt=False
 
     @slow
     def test_model_from_pretrained(self):
