@@ -1651,9 +1651,7 @@ class JambaModel(JambaPreTrainedModel):
             if isinstance(past_key_values, Cache) and not isinstance(
                 past_key_values, HybridMambaAttentionDynamicCache
             ):
-                raise ValueError(
-                    "if past_key_values is an instance of Cache, it must be an instance of HybridMambaAttentionDynamicCache"
-                )
+                past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values.to_legacy_cache())
             use_legacy_cache = not isinstance(past_key_values, HybridMambaAttentionDynamicCache)
             if use_legacy_cache:
                 past_key_values = HybridMambaAttentionDynamicCache.from_legacy_cache(past_key_values)
