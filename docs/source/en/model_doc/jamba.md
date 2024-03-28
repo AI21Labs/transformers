@@ -35,9 +35,9 @@ alt="drawing" width="600"/>
 
 ### Presequities
 
-Jamba requires you use `transformers` version 4.38.2 or higher:
+Jamba requires you use `transformers` version 4.39.0 or higher:
 ```bash
-pip install transformers>=4.38.2
+pip install transformers>=4.39.0
 ```
 
 In order to run optimized Mamba implementations, you first need to install `mamba-ssm` and `causal-conv1d`:
