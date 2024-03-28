@@ -28,9 +28,8 @@ Jamba is a pretrained, mixture-of-experts (MoE) generative text model, with 12B 
 
 As depicted in the diagram below, Jamba's architecture features a blocks-and-layers approach that allows Jamba to successfully integrate Transformer and Mamba architectures altogether. Each Jamba block contains either an attention or a Mamba layer, followed by a multi-layer perceptron (MLP), producing an overall ratio of one Transformer layer out of every eight total layers.
 
-<div style="text-align: center">
-<img src="">
-</div>
+<img src="https://huggingface.co/datasets/huggingface/documentation-images/raw/main/transformers/model_doc/jamba_architecture.png"
+alt="drawing" width="600"/>
 
 ## Usage
 
